@@ -1,0 +1,19 @@
+[package]
+name = "hale"
+version = "0.1.0"
+edition = "2021"
+description = "Network connection quality monitor for video call troubleshooting"
+
+[dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "net", "sync", "signal"] }
+ratatui = "0.26"
+crossterm = "0.27"
+clap = { version = "4", features = ["derive"] }
+chrono = "0.4"
+futures = "0.3"
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
+panic = "abort"

@@ -1,0 +1,110 @@
+use crate::monitor::{ConnectionStatus, NetworkStats};
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[command(name = "hale")]
+#[command(about = "Network connection quality monitor for video call troubleshooting")]
+#[command(version)]
+pub struct Cli {
+    /// Run a single check and exit (CLI mode)
+    #[arg(short = 'c', long = "check")]
+    pub check: bool,
+
+    /// Output format (only applies to CLI mode)
+    #[arg(short, long, default_value = "text")]
+    pub format: OutputFormat,
+
+    /// Enable verbose output
+    #[arg(short, long)]
+    pub verbose: bool,
+}
+
+#[derive(Debug, Clone, Default, clap::ValueEnum)]
+pub enum OutputFormat {
+    /// Plain text output
+    #[default]
+    Text,
+    /// JSON output
+    Json,
+}
+
+pub fn parse_args() -> Cli {
+    Cli::parse()
+}
+
+/// Format and display network statistics in CLI mode
+pub fn display_cli_stats(stats: &NetworkStats, format: &OutputFormat, verbose: bool) {
+    match format {
+        OutputFormat::Text => {
+            display_text_format(stats, verbose);
+        }
+        OutputFormat::Json => {
+            display_json_format(stats);
+        }
+    }
+}
+
+/// Display stats in human-readable text format with ANSI colors
+fn display_text_format(stats: &NetworkStats, verbose: bool) {
+    let (symbol, color_code, status_text) = match stats.status {
+        ConnectionStatus::Ok => ("✓", "\x1b[32m", "OK"), // Green
+        ConnectionStatus::Slow => ("⚠", "\x1b[33m", "Slow"), // Yellow
+        ConnectionStatus::Disconnected => ("✗", "\x1b[31m", "DISCONNECTED"), // Red
+    };
+
+    // Main status line with color - only show latency
+    let latency_display = if stats.avg_latency_ms > 0.0 {
+        format!("{:.0}ms", stats.avg_latency_ms)
+    } else {
+        "timeout".to_string()
+    };
+
+    println!(
+        "{}{} {}  {}\x1b[0m",
+        color_code, symbol, status_text, latency_display
+    );
+
+    // Show reason if not OK
+    if stats.status != ConnectionStatus::Ok {
+        let reason = match stats.status {
+            ConnectionStatus::Slow => format!("  High latency ({:.0}ms)", stats.avg_latency_ms),
+            ConnectionStatus::Disconnected => {
+                if stats.avg_latency_ms > 0.0 {
+                    format!("  Very high latency ({:.0}ms)", stats.avg_latency_ms)
+                } else {
+                    "  No response from network".to_string()
+                }
+            }
+            _ => String::new(),
+        };
+        if !reason.is_empty() {
+            println!("{}", reason);
+        }
+    }
+
+    // Verbose output
+    if verbose {
+        println!(
+            "  Timestamp: {}",
+            stats.timestamp.format("%Y-%m-%d %H:%M:%S")
+        );
+    }
+}
+
+/// Display stats in JSON format
+fn display_json_format(stats: &NetworkStats) {
+    println!(
+        r#"{{"timestamp":"{}","status":"{}","latency_ms":{:.1}}}"#,
+        stats.timestamp.to_rfc3339(),
+        stats.status,
+        stats.avg_latency_ms
+    );
+}
+
+/// Get exit code based on connection status
+pub fn get_exit_code(status: ConnectionStatus) -> i32 {
+    match status {
+        ConnectionStatus::Ok => 0,
+        ConnectionStatus::Slow | ConnectionStatus::Disconnected => 1,
+    }
+}
