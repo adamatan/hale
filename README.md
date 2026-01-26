@@ -1,6 +1,6 @@
 # hale
 
-[![CI](https://github.com/adam-matan/hale/actions/workflows/ci.yml/badge.svg)](https://github.com/adam-matan/hale/actions/workflows/ci.yml)
+[![CI](https://github.com/adamatan/hale/actions/workflows/ci.yml/badge.svg)](https://github.com/adamatan/hale/actions/workflows/ci.yml)
 
 **hale** is a lightweight, high-precision network connection quality monitor designed specifically for troubleshooting video call issues. It answers the critical question: *"Is my internet connection good enough for this call right now?"*
 
