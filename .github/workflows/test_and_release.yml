@@ -68,11 +68,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
         run: |
-          release-plz update
+          release-plz update --verbose
           if [[ -n $(git status -s) ]]; then
             echo "Changes detected. Preparing release..."
             git add .
             git commit -m "chore: release"
             git push origin main
           fi
-          release-plz release --git-token "${{ secrets.GITHUB_TOKEN }}" --backend github
+          release-plz release --verbose --git-token "${{ secrets.GITHUB_TOKEN }}" --backend github
