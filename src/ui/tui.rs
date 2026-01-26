@@ -95,7 +95,11 @@ impl TuiState {
 
     pub fn time_since_last_incident(&self) -> String {
         let now = Utc::now();
-        let last_incident_end = self.disconnections.iter().filter_map(|d| d.end_time).last();
+        let last_incident_end = self
+            .disconnections
+            .iter()
+            .filter_map(|d| d.end_time)
+            .next_back();
 
         let start = last_incident_end.unwrap_or(self.session_start);
         let duration = now.signed_duration_since(start);
