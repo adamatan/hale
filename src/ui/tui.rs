@@ -359,11 +359,7 @@ fn render_site_row(f: &mut Frame, area: Rect, state: &TuiState, idx: usize, use_
 
     // Each character represents one probe round (simplification for site rows)
     let history_len = state.history.len();
-    let start_idx = if history_len > effective_width {
-        history_len - effective_width
-    } else {
-        0
-    };
+    let start_idx = history_len.saturating_sub(effective_width);
 
     for i in start_idx..history_len {
         let round = &state.history[i];
