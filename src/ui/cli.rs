@@ -3,7 +3,7 @@ use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(name = "hale")]
-#[command(about = "Network connection quality monitor for video call troubleshooting")]
+#[command(about = "Instant network connection quality monitor")]
 #[command(version)]
 pub struct Cli {
     /// Run a single check and exit (CLI mode)

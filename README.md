@@ -2,16 +2,16 @@
 
 [![CI](https://github.com/adamatan/hale/actions/workflows/ci.yml/badge.svg)](https://github.com/adamatan/hale/actions/workflows/ci.yml)
 
-**hale** is a lightweight, high-precision network connection quality monitor designed specifically for troubleshooting video call issues. It answers the critical question: *"Is my internet connection good enough for this call right now?"*
+**hale** is a lightweight, high-precision network connection quality monitor. It answers the critical question: *"Is my internet connection OK right now?"*
 
 Unlike standard ping tools, **hale** uses concurrent TCP probing across six major global networks to provide an at-a-glance health assessment without requiring root/sudo privileges.
 
 ## Vision & Purpose
 
-During video calls, it's often difficult to tell if lag or audio dropouts are caused by your own connection, another participant, or the service itself. **hale** provides immediate clarity through:
+It's often difficult to tell if internet slowness is caused by your own connection, a specific website, or a wider outage. **hale** provides immediate clarity through:
 *   **Immediate clarity**: Big, obvious status indicators (OK/Slow/Disconnected).
 *   **Context-aware feedback**: Descriptive explanations when issues are detected.
-*   **Call-focused design**: Optimized for the specific latency and stability requirements of modern video conferencing.
+*   **High-precision monitoring**: Optimized for detecting micro-dropouts and stability issues that standard tools miss.
 
 ## Key Features
 

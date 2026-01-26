@@ -2,7 +2,9 @@
 name = "hale"
 version = "0.1.0"
 edition = "2021"
-description = "Network connection quality monitor for video call troubleshooting"
+license = "MIT"
+description = "Instant network connection quality monitor"
+repository = "https://github.com/adamatan/hale"
 
 [dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "net", "sync", "signal"] }
