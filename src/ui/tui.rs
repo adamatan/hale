@@ -95,7 +95,11 @@ impl TuiState {
 
     pub fn time_since_last_incident(&self) -> String {
         let now = Utc::now();
-        let last_incident_end = self.disconnections.iter().filter_map(|d| d.end_time).last();
+        let last_incident_end = self
+            .disconnections
+            .iter()
+            .filter_map(|d| d.end_time)
+            .next_back();
 
         let start = last_incident_end.unwrap_or(self.session_start);
         let duration = now.signed_duration_since(start);
@@ -359,11 +363,7 @@ fn render_site_row(f: &mut Frame, area: Rect, state: &TuiState, idx: usize, use_
 
     // Each character represents one probe round (simplification for site rows)
     let history_len = state.history.len();
-    let start_idx = if history_len > effective_width {
-        history_len - effective_width
-    } else {
-        0
-    };
+    let start_idx = history_len.saturating_sub(effective_width);
 
     for i in start_idx..history_len {
         let round = &state.history[i];

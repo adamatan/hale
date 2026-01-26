@@ -1,5 +1,7 @@
 # hale
 
+[![CI](https://github.com/adam-matan/hale/actions/workflows/ci.yml/badge.svg)](https://github.com/adam-matan/hale/actions/workflows/ci.yml)
+
 **hale** is a lightweight, high-precision network connection quality monitor designed specifically for troubleshooting video call issues. It answers the critical question: *"Is my internet connection good enough for this call right now?"*
 
 Unlike standard ping tools, **hale** uses concurrent TCP probing across six major global networks to provide an at-a-glance health assessment without requiring root/sudo privileges.

@@ -43,7 +43,8 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
     let (probe_tx, mut probe_rx) = mpsc::channel(100);
 
     // Create channel for aggregated stats (stats, latest_round)
-    let (stats_tx, mut stats_rx) = mpsc::channel::<(crate::monitor::NetworkStats, crate::monitor::ProbeRound)>(100);
+    let (stats_tx, mut stats_rx) =
+        mpsc::channel::<(crate::monitor::NetworkStats, crate::monitor::ProbeRound)>(100);
 
     // Start probe loop
     let _probe_handle = tokio::spawn(async move {
@@ -79,7 +80,7 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
         loop {
             // Update terminal and handle events
             terminal.draw(|f| ui::tui::ui(f, &tui_state))?;
-            
+
             tokio::select! {
                 // Handle keyboard events
                 _ = tokio::task::spawn_blocking(|| {
@@ -106,26 +107,27 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                 }
-                
+
                 // Receive probe results and log status changes
                 Some((stats, latest_round)) = stats_rx.recv() => {
                     logger.log_stats(&stats)?;
                     tui_state.update_stats(stats, latest_round);
                 }
-                
+
                 // Handle Ctrl+C signal
                 _ = tokio::signal::ctrl_c() => {
                     tui_state.should_quit = true;
                 }
             }
-            
+
             if tui_state.should_quit {
                 break;
             }
         }
-        
+
         Ok::<(), Box<dyn std::error::Error>>(())
-    }.await;
+    }
+    .await;
 
     // Restore terminal
     ui::tui::restore_terminal(&mut terminal)?;
