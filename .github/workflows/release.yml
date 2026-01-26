@@ -54,9 +54,9 @@ jobs:
             git add .
             git commit -m "chore: release"
             git push origin main
-
-            # 4. Publish to Crates.io and Tag
-            release-plz release --git-token "${{ secrets.GITHUB_TOKEN }}" --backend github
-          else
-            echo "No release needed."
           fi
+
+          # 4. Publish to Crates.io and Tag
+          # We run this unconditionally. release-plz is idempotent and will only
+          # publish if the local version is newer than the registry version.
+          release-plz release --git-token "${{ secrets.GITHUB_TOKEN }}" --backend github
