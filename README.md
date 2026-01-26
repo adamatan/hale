@@ -1,6 +1,6 @@
 # hale
 
-[![CI](https://github.com/adamatan/hale/actions/workflows/ci.yml/badge.svg)](https://github.com/adamatan/hale/actions/workflows/ci.yml)
+[![CI](https://github.com/adamatan/hale/actions/workflows/test_and_release.yml/badge.svg)](https://github.com/adamatan/hale/actions/workflows/test_and_release.yml)
 
 **hale** is a lightweight, high-precision network connection quality monitor. It answers the critical question: *"Is my internet connection OK right now?"*
 
