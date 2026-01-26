@@ -56,7 +56,7 @@ jobs:
             git push origin main
 
             # 4. Publish to Crates.io and Tag
-            release-plz release
+            release-plz release --git-token "${{ secrets.GITHUB_TOKEN }}" --backend github
           else
             echo "No release needed."
           fi
