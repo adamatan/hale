@@ -1,17 +1,42 @@
-name: Release
+name: Test and Release
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
 
-permissions:
-  contents: write
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Lint with clippy
+        run: cargo clippy -- -D warnings
+      - name: Build
+        run: cargo build --verbose
+      - name: Run tests
+        run: cargo test --verbose
+
   release:
     name: Release
     runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -43,20 +68,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
         run: |
-          # 1. Update Manifest and Changelog
           release-plz update
-
-          # 2. Check if anything changed
           if [[ -n $(git status -s) ]]; then
             echo "Changes detected. Preparing release..."
-
-            # 3. Commit and Push
             git add .
             git commit -m "chore: release"
             git push origin main
           fi
-
-          # 4. Publish to Crates.io and Tag
-          # We run this unconditionally. release-plz is idempotent and will only
-          # publish if the local version is newer than the registry version.
           release-plz release --git-token "${{ secrets.GITHUB_TOKEN }}" --backend github
