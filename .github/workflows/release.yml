@@ -26,6 +26,7 @@ jobs:
           curl -L -o release-plz.tar.gz https://github.com/MarcoIeni/release-plz/releases/latest/download/release-plz-x86_64-unknown-linux-gnu.tar.gz
           tar xf release-plz.tar.gz
           sudo mv release-plz /usr/local/bin/
+          rm release-plz.tar.gz
 
       - name: Run CI Checks
         run: |
