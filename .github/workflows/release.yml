@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install release-plz (Manual)
+        run: |
+          curl -L -o release-plz.tar.gz https://github.com/MarcoIeni/release-plz/releases/latest/download/release-plz-x86_64-unknown-linux-gnu.tar.gz
+          tar xf release-plz.tar.gz
+          sudo mv release-plz /usr/local/bin/
+
+      - name: Run CI Checks
+        run: |
+          cargo test
+          cargo clippy -- -D warnings
+
+      - name: Git Config
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
+        run: |
+          # 1. Update Manifest and Changelog
+          release-plz update
+
+          # 2. Check if anything changed
+          if [[ -n $(git status -s) ]]; then
+            echo "Changes detected. Preparing release..."
+
+            # 3. Commit and Push
+            git add .
+            git commit -m "chore: release"
+            git push origin main
+
+            # 4. Publish to Crates.io and Tag
+            release-plz release
+          else
+            echo "No release needed."
+          fi

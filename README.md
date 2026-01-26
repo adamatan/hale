@@ -116,5 +116,16 @@ Hale includes a comprehensive suite of unit tests covering its analysis engine a
 cargo test
 ```
 
+## Release Process
+
+This project uses an automated release workflow powered by [release-plz](https://github.com/MarcoIeni/release-plz).
+
+*   **Trigger**: Pushing to the `main` branch.
+*   **Versioning**: Determined automatically based on [Conventional Commits](https://www.conventionalcommits.org/).
+    *   `fix:` -> Patch bump.
+    *   `feat:` -> Minor bump.
+    *   `BREAKING CHANGE:` -> Major bump.
+*   **Publishing**: Automatically publishes to [crates.io](https://crates.io/crates/hale) and creates a GitHub release/tag.
+
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
