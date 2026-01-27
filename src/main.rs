@@ -11,6 +11,8 @@ use crate::ui::parse_args;
 use crate::utils::logger::SessionLogger;
 use std::collections::VecDeque;
 use tokio::sync::mpsc;
+#[cfg(unix)]
+use tokio::signal::unix::{signal, SignalKind};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -32,8 +34,18 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
     // Setup panic hook to restore terminal
     ui::tui::setup_panic_hook();
 
-    // Initialize terminal
-    let mut terminal = ui::tui::init_terminal()?;
+    // Initialize terminal with RAII context to ensure cleanup
+    let mut tui_context = ui::tui::TuiContext::new()?;
+
+    // Setup SIGTERM listener for cargo watch
+    #[cfg(unix)]
+    let mut sigterm = signal(SignalKind::terminate())?;
+    #[cfg(not(unix))]
+    let mut sigterm = {
+        struct Stub;
+        impl Stub { async fn recv(&mut self) -> Option<()> { std::future::pending().await } }
+        Stub
+    };
 
     // Create logger
     let mut logger = SessionLogger::new()?;
@@ -79,7 +91,7 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
     let result = async {
         loop {
             // Update terminal and handle events
-            terminal.draw(|f| ui::tui::ui(f, &tui_state))?;
+            tui_context.terminal.draw(|f| ui::tui::ui(f, &tui_state))?;
 
             tokio::select! {
                 // Handle keyboard events
@@ -118,6 +130,11 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
                 _ = tokio::signal::ctrl_c() => {
                     tui_state.should_quit = true;
                 }
+
+                // Handle SIGTERM (cargo watch)
+                _ = sigterm.recv() => {
+                    tui_state.should_quit = true;
+                }
             }
 
             if tui_state.should_quit {
@@ -129,8 +146,7 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
     }
     .await;
 
-    // Restore terminal
-    ui::tui::restore_terminal(&mut terminal)?;
+    // Terminal is restored automatically when tui_context drops
 
     // Display log path
     println!("\nSession log saved to: {}", log_path.display());

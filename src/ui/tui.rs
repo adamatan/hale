@@ -81,6 +81,24 @@ pub struct TuiState {
     pub last_status: Option<ConnectionStatus>,
 }
 
+/// Context manager for TUI that handles cleanup automatically
+pub struct TuiContext {
+    pub terminal: Terminal<CrosstermBackend<io::Stdout>>,
+}
+
+impl TuiContext {
+    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
+        let terminal = init_terminal()?;
+        Ok(Self { terminal })
+    }
+}
+
+impl Drop for TuiContext {
+    fn drop(&mut self) {
+        let _ = restore_terminal(&mut self.terminal);
+    }
+}
+
 impl TuiState {
     pub fn new() -> Self {
         Self {
