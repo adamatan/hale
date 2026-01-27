@@ -597,26 +597,44 @@ fn render_site_row(f: &mut Frame, area: Rect, state: &TuiState, idx: usize, use_
 
     // Determine the window for this timeframe
     let elapsed_secs = now.signed_duration_since(state.session_start).num_seconds();
+
+    // Duration per character in seconds
+    let total_duration_ms = window_seconds * 1000;
+    // Add tolerance for probe jitter (50% of interval)
+    let tolerance = chrono::Duration::milliseconds((PROBE_INTERVAL_MS / 2) as i64);
+
+    // Snap window start to character width to prevent aliasing/shimmering
+    let ms_per_char = if effective_width > 0 {
+        total_duration_ms / effective_width as i64
+    } else {
+        1000
+    };
+
+    let elapsed_ms = now
+        .signed_duration_since(state.session_start)
+        .num_milliseconds();
+    let snapped_elapsed_ms = (elapsed_ms / ms_per_char) * ms_per_char;
+
+    // Recalculate window start with snapped time
     let window_start = if elapsed_secs < window_seconds {
         state.session_start
     } else {
-        now - chrono::Duration::seconds(window_seconds)
+        state.session_start + chrono::Duration::milliseconds(snapped_elapsed_ms)
+            - chrono::Duration::seconds(window_seconds)
     };
 
-    // Duration per character in seconds
-    let seconds_per_char = window_seconds as f64 / effective_width as f64;
-
     for i in 0..effective_width {
-        let bucket_start = window_start
-            + chrono::Duration::milliseconds((i as f64 * seconds_per_char * 1000.0) as i64);
-        let bucket_end = window_start
-            + chrono::Duration::milliseconds(((i + 1) as f64 * seconds_per_char * 1000.0) as i64);
+        let bucket_start_ms = (i as i64 * total_duration_ms) / effective_width as i64;
+        let bucket_end_ms = ((i + 1) as i64 * total_duration_ms) / effective_width as i64;
+
+        let bucket_start = window_start + chrono::Duration::milliseconds(bucket_start_ms);
+        let bucket_end = window_start + chrono::Duration::milliseconds(bucket_end_ms);
 
         let mut has_data = false;
         let mut status = ConnectionStatus::Ok;
 
         for round in state.history.iter() {
-            let probe_valid_until = round.timestamp + probe_interval;
+            let probe_valid_until = round.timestamp + probe_interval + tolerance;
 
             if round.timestamp < bucket_end && probe_valid_until > bucket_start {
                 has_data = true;
@@ -720,26 +738,44 @@ fn render_global_row(f: &mut Frame, area: Rect, state: &TuiState) {
 
     // Determine the window for this timeframe
     let elapsed_secs = now.signed_duration_since(state.session_start).num_seconds();
+
+    // Duration per character in seconds
+    let total_duration_ms = window_seconds * 1000;
+    // Add tolerance for probe jitter (50% of interval)
+    let tolerance = chrono::Duration::milliseconds((PROBE_INTERVAL_MS / 2) as i64);
+
+    // Snap window start to character width to prevent aliasing/shimmering
+    let ms_per_char = if effective_width > 0 {
+        total_duration_ms / effective_width as i64
+    } else {
+        1000
+    };
+
+    let elapsed_ms = now
+        .signed_duration_since(state.session_start)
+        .num_milliseconds();
+    let snapped_elapsed_ms = (elapsed_ms / ms_per_char) * ms_per_char;
+
+    // Recalculate window start with snapped time
     let window_start = if elapsed_secs < window_seconds {
         state.session_start
     } else {
-        now - chrono::Duration::seconds(window_seconds)
+        state.session_start + chrono::Duration::milliseconds(snapped_elapsed_ms)
+            - chrono::Duration::seconds(window_seconds)
     };
 
-    // Duration per character in seconds
-    let seconds_per_char = window_seconds as f64 / effective_width as f64;
-
     for i in 0..effective_width {
-        let bucket_start = window_start
-            + chrono::Duration::milliseconds((i as f64 * seconds_per_char * 1000.0) as i64);
-        let bucket_end = window_start
-            + chrono::Duration::milliseconds(((i + 1) as f64 * seconds_per_char * 1000.0) as i64);
+        let bucket_start_ms = (i as i64 * total_duration_ms) / effective_width as i64;
+        let bucket_end_ms = ((i + 1) as i64 * total_duration_ms) / effective_width as i64;
+
+        let bucket_start = window_start + chrono::Duration::milliseconds(bucket_start_ms);
+        let bucket_end = window_start + chrono::Duration::milliseconds(bucket_end_ms);
 
         let mut has_data = false;
         let mut status = ConnectionStatus::Ok;
 
         for round in state.history.iter() {
-            let probe_valid_until = round.timestamp + probe_interval;
+            let probe_valid_until = round.timestamp + probe_interval + tolerance;
 
             if round.timestamp < bucket_end && probe_valid_until > bucket_start {
                 has_data = true;
@@ -820,25 +856,37 @@ fn render_summary_row(f: &mut Frame, area: Rect, state: &TuiState, label: &str, 
 
     // Determine the window for this timeframe
     let elapsed_secs = now.signed_duration_since(state.session_start).num_seconds();
-    let (window_start, _window_end) = if elapsed_secs < seconds {
-        // Session is younger than the timeframe: show from session start
-        (
-            state.session_start,
-            state.session_start + chrono::Duration::seconds(seconds),
-        )
+    // Duration per character in seconds
+    let total_duration_ms = seconds * 1000;
+    // Add tolerance for probe jitter (50% of interval)
+    let tolerance = chrono::Duration::milliseconds((PROBE_INTERVAL_MS / 2) as i64);
+
+    // Snap window start to character width to prevent aliasing/shimmering
+    let ms_per_char = if effective_width > 0 {
+        total_duration_ms / effective_width as i64
     } else {
-        // Session is older: show last X seconds (sliding window)
-        (now - chrono::Duration::seconds(seconds), now)
+        1000
     };
 
-    // Duration per character in seconds
-    let seconds_per_char = seconds as f64 / effective_width as f64;
+    let elapsed_ms = now
+        .signed_duration_since(state.session_start)
+        .num_milliseconds();
+    let snapped_elapsed_ms = (elapsed_ms / ms_per_char) * ms_per_char;
+
+    // Recalculate window start with snapped time
+    let window_start = if elapsed_secs < seconds {
+        state.session_start
+    } else {
+        state.session_start + chrono::Duration::milliseconds(snapped_elapsed_ms)
+            - chrono::Duration::seconds(seconds)
+    };
 
     for i in 0..effective_width {
-        let bucket_start = window_start
-            + chrono::Duration::milliseconds((i as f64 * seconds_per_char * 1000.0) as i64);
-        let bucket_end = window_start
-            + chrono::Duration::milliseconds(((i + 1) as f64 * seconds_per_char * 1000.0) as i64);
+        let bucket_start_ms = (i as i64 * total_duration_ms) / effective_width as i64;
+        let bucket_end_ms = ((i + 1) as i64 * total_duration_ms) / effective_width as i64;
+
+        let bucket_start = window_start + chrono::Duration::milliseconds(bucket_start_ms);
+        let bucket_end = window_start + chrono::Duration::milliseconds(bucket_end_ms);
 
         // Find if any disconnection or slow status in this bucket
         let mut has_disconnection = false;
@@ -849,7 +897,7 @@ fn render_summary_row(f: &mut Frame, area: Rect, state: &TuiState, label: &str, 
             // Gap fix: Check if the probe's validity window overlaps with the bucket
             // Probe is valid for [timestamp, timestamp + interval)
             // Overlap condition: start1 < end2 && start2 < end1
-            let probe_valid_until = round.timestamp + probe_interval;
+            let probe_valid_until = round.timestamp + probe_interval + tolerance;
 
             if round.timestamp < bucket_end && probe_valid_until > bucket_start {
                 has_data = true;
