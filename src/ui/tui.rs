@@ -1,4 +1,4 @@
-use crate::config::{HISTORY_WINDOW_SIZE, TARGETS, TARGET_LABELS};
+use crate::config::{HISTORY_WINDOW_SIZE, PROBE_INTERVAL_MS, TARGETS, TARGET_LABELS};
 use crate::monitor::{ConnectionStatus, NetworkStats, ProbeRound};
 use chrono::{DateTime, Utc};
 use crossterm::{
@@ -504,10 +504,9 @@ fn render_main_content(f: &mut Frame, area: Rect, state: &TuiState) {
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length((provider_count + 2) as u16), // Dynamic Provider box height
-            Constraint::Length(1),                           // Spacer
-            Constraint::Length(3),                           // 5m
-            Constraint::Length(3),                           // 1h
+            Constraint::Length((provider_count + 1 + 1 + 2) as u16), // Dynamic Provider box height (+1 spacer, +1 Aggregate)
+            Constraint::Length(1),                                   // Spacer
+            Constraint::Length(4), // Unified History (Title + 2 rows + Borders)
         ])
         .split(area);
 
@@ -521,23 +520,32 @@ fn render_main_content(f: &mut Frame, area: Rect, state: &TuiState) {
 
     let provider_rows = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(vec![Constraint::Length(1); provider_count])
+        .constraints({
+            let mut c = vec![Constraint::Length(1); provider_count];
+            c.push(Constraint::Length(1)); // Spacer
+            c.push(Constraint::Length(1)); // For Aggregate row
+            c
+        })
         .split(inner_area);
 
     for i in 0..provider_count {
         render_site_row(f, provider_rows[i], state, i, false);
     }
 
-    render_timeframe_row(f, rows[2], state, "5 minutes", 300);
-    render_timeframe_row(f, rows[3], state, "1 hour", 3600);
+    // Render Global/Aggregate Row (after spacer)
+    render_global_row(f, provider_rows[provider_count + 1], state);
+
+    render_unified_history_box(f, rows[2], state);
 }
 
 fn render_site_row(f: &mut Frame, area: Rect, state: &TuiState, idx: usize, use_borders: bool) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Length(38), // Increased for Name, IP, and Latency alignment
-            Constraint::Min(10),    // Status bar
+            Constraint::Length(11), // Name
+            Constraint::Length(18), // IP
+            Constraint::Length(8),  // Latency (Right aligned)
+            Constraint::Min(10),    // Bar (Expands)
         ])
         .split(area);
 
@@ -557,16 +565,6 @@ fn render_site_row(f: &mut Frame, area: Rect, state: &TuiState, idx: usize, use_
         "... ".to_string()
     };
 
-    // Sub-layout for Name (left), IP (left), and latency (right)
-    let info_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Length(11), // Name
-            Constraint::Length(18), // IP
-            Constraint::Min(5),     // Latency
-        ])
-        .split(chunks[0]);
-
     let name_para = Paragraph::new(Span::styled(
         name,
         Style::default().add_modifier(Modifier::BOLD),
@@ -575,12 +573,12 @@ fn render_site_row(f: &mut Frame, area: Rect, state: &TuiState, idx: usize, use_
     let latency_para = Paragraph::new(Span::styled(latency, Style::default().fg(Color::Cyan)))
         .alignment(Alignment::Right);
 
-    f.render_widget(name_para, info_chunks[0]);
-    f.render_widget(ip_para, info_chunks[1]);
-    f.render_widget(latency_para, info_chunks[2]);
+    f.render_widget(name_para, chunks[0]);
+    f.render_widget(ip_para, chunks[1]);
+    f.render_widget(latency_para, chunks[2]);
 
     // Render bar
-    let bar_width = chunks[1].width as usize;
+    let bar_width = chunks[3].width as usize;
     let (effective_width, bar_block) = if use_borders {
         if bar_width <= 2 {
             return;
@@ -592,66 +590,233 @@ fn render_site_row(f: &mut Frame, area: Rect, state: &TuiState, idx: usize, use_
 
     let mut spans = Vec::new();
 
-    // Each character represents one probe round (simplification for site rows)
-    let history_len = state.history.len();
-    let start_idx = history_len.saturating_sub(effective_width);
+    // Show 1 minute of history, spanning the full bar width
+    let window_seconds: i64 = 60;
+    let now = Utc::now();
+    let probe_interval = chrono::Duration::milliseconds(PROBE_INTERVAL_MS as i64);
 
-    for i in start_idx..history_len {
-        let round = &state.history[i];
-        let status = if let Some(res) = round.results.get(idx) {
-            if res.success {
-                if let Some(l) = res.latency_ms {
-                    if l > 300.0 {
-                        ConnectionStatus::Disconnected
-                    } else if l > 100.0 {
-                        ConnectionStatus::Slow
+    // Determine the window for this timeframe
+    let elapsed_secs = now.signed_duration_since(state.session_start).num_seconds();
+    let window_start = if elapsed_secs < window_seconds {
+        state.session_start
+    } else {
+        now - chrono::Duration::seconds(window_seconds)
+    };
+
+    // Duration per character in seconds
+    let seconds_per_char = window_seconds as f64 / effective_width as f64;
+
+    for i in 0..effective_width {
+        let bucket_start = window_start
+            + chrono::Duration::milliseconds((i as f64 * seconds_per_char * 1000.0) as i64);
+        let bucket_end = window_start
+            + chrono::Duration::milliseconds(((i + 1) as f64 * seconds_per_char * 1000.0) as i64);
+
+        let mut has_data = false;
+        let mut status = ConnectionStatus::Ok;
+
+        for round in state.history.iter() {
+            let probe_valid_until = round.timestamp + probe_interval;
+
+            if round.timestamp < bucket_end && probe_valid_until > bucket_start {
+                has_data = true;
+
+                if let Some(res) = round.results.get(idx) {
+                    if res.success {
+                        if let Some(l) = res.latency_ms {
+                            if l > 300.0 {
+                                status = ConnectionStatus::Disconnected;
+                                break;
+                            } else if l > 100.0 && status != ConnectionStatus::Disconnected {
+                                status = ConnectionStatus::Slow;
+                            }
+                        } else {
+                            status = ConnectionStatus::Disconnected;
+                            break;
+                        }
                     } else {
-                        ConnectionStatus::Ok
+                        status = ConnectionStatus::Disconnected;
+                        break;
                     }
-                } else {
-                    ConnectionStatus::Disconnected
                 }
-            } else {
-                ConnectionStatus::Disconnected
             }
-        } else {
-            ConnectionStatus::Disconnected
-        };
+        }
 
-        let (ch, color) = match status {
-            ConnectionStatus::Ok => ('·', Color::Green),
-            ConnectionStatus::Slow => ('!', Color::Yellow),
-            ConnectionStatus::Disconnected => ('█', Color::Red),
+        let (ch, color) = if !has_data {
+            (' ', Color::Black)
+        } else {
+            match status {
+                ConnectionStatus::Ok => ('·', Color::Green),
+                ConnectionStatus::Slow => ('!', Color::Yellow),
+                ConnectionStatus::Disconnected => ('█', Color::Red),
+            }
         };
         spans.push(Span::styled(ch.to_string(), Style::default().fg(color)));
     }
 
     f.render_widget(
         Paragraph::new(Line::from(spans)).block(bar_block),
-        chunks[1],
+        chunks[3],
     );
 }
 
-fn render_timeframe_row(f: &mut Frame, area: Rect, state: &TuiState, label: &str, seconds: i64) {
+fn render_global_row(f: &mut Frame, area: Rect, state: &TuiState) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Length(38), Constraint::Min(10)])
+        .constraints([
+            Constraint::Length(11), // Name
+            Constraint::Length(18), // IP
+            Constraint::Length(8),  // Latency
+            Constraint::Min(10),    // Bar
+        ])
+        .split(area);
+
+    // Calculate average latency
+    let latency_str = if let Some(round) = state.history.back() {
+        let successful_results: Vec<f64> = round
+            .results
+            .iter()
+            .filter(|r| r.success)
+            .filter_map(|r| r.latency_ms)
+            .collect();
+
+        if !successful_results.is_empty() {
+            let avg = successful_results.iter().sum::<f64>() / successful_results.len() as f64;
+            format!("{:.0}ms ", avg)
+        } else {
+            "... ".to_string()
+        }
+    } else {
+        "... ".to_string()
+    };
+
+    let name_para = Paragraph::new(Span::styled(
+        "Aggregate",
+        Style::default().add_modifier(Modifier::BOLD),
+    ));
+    let ip_para = Paragraph::new(Span::styled("", Style::default().fg(Color::DarkGray)));
+    let latency_para = Paragraph::new(Span::styled(latency_str, Style::default().fg(Color::Cyan)))
+        .alignment(Alignment::Right);
+
+    f.render_widget(name_para, chunks[0]);
+    f.render_widget(ip_para, chunks[1]);
+    f.render_widget(latency_para, chunks[2]);
+
+    // Render bar
+    let bar_width = chunks[3].width as usize;
+    if bar_width <= 2 {
+        return;
+    }
+
+    // Use effective width directly (no border logic needed as this is inside the container)
+    let effective_width = bar_width;
+
+    let mut spans = Vec::new();
+
+    // Show 1 minute of history, spanning the full bar width
+    let window_seconds: i64 = 60;
+    let now = Utc::now();
+    let probe_interval = chrono::Duration::milliseconds(PROBE_INTERVAL_MS as i64);
+
+    // Determine the window for this timeframe
+    let elapsed_secs = now.signed_duration_since(state.session_start).num_seconds();
+    let window_start = if elapsed_secs < window_seconds {
+        state.session_start
+    } else {
+        now - chrono::Duration::seconds(window_seconds)
+    };
+
+    // Duration per character in seconds
+    let seconds_per_char = window_seconds as f64 / effective_width as f64;
+
+    for i in 0..effective_width {
+        let bucket_start = window_start
+            + chrono::Duration::milliseconds((i as f64 * seconds_per_char * 1000.0) as i64);
+        let bucket_end = window_start
+            + chrono::Duration::milliseconds(((i + 1) as f64 * seconds_per_char * 1000.0) as i64);
+
+        let mut has_data = false;
+        let mut status = ConnectionStatus::Ok;
+
+        for round in state.history.iter() {
+            let probe_valid_until = round.timestamp + probe_interval;
+
+            if round.timestamp < bucket_end && probe_valid_until > bucket_start {
+                has_data = true;
+
+                // Majority vote logic
+                let failed_count = round.results.iter().filter(|r| !r.success).count();
+                let avg_latency: f64 = if round.results.iter().any(|r| r.success) {
+                    round
+                        .results
+                        .iter()
+                        .filter_map(|r| r.latency_ms)
+                        .sum::<f64>()
+                        / round.results.iter().filter(|r| r.success).count() as f64
+                } else {
+                    f64::MAX
+                };
+
+                if failed_count >= 2 || avg_latency > 300.0 {
+                    status = ConnectionStatus::Disconnected;
+                    break;
+                } else if avg_latency > 100.0 && status != ConnectionStatus::Disconnected {
+                    status = ConnectionStatus::Slow;
+                }
+            }
+        }
+
+        let (ch, color) = if !has_data {
+            (' ', Color::Black)
+        } else {
+            match status {
+                ConnectionStatus::Ok => ('·', Color::Green),
+                ConnectionStatus::Slow => ('!', Color::Yellow),
+                ConnectionStatus::Disconnected => ('█', Color::Red),
+            }
+        };
+        spans.push(Span::styled(ch.to_string(), Style::default().fg(color)));
+    }
+
+    f.render_widget(Paragraph::new(Line::from(spans)), chunks[3]);
+}
+
+fn render_unified_history_box(f: &mut Frame, area: Rect, state: &TuiState) {
+    let block = Block::default().title("History").borders(Borders::ALL);
+    let inner_area = block.inner(area);
+    f.render_widget(block, area);
+
+    let rows = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Length(1)])
+        .split(inner_area);
+
+    render_summary_row(f, rows[0], state, "5m", 300);
+    render_summary_row(f, rows[1], state, "15m", 900);
+}
+
+fn render_summary_row(f: &mut Frame, area: Rect, state: &TuiState, label: &str, seconds: i64) {
+    // Match the layout of render_site_row: Name(11) + IP(18) + Latency(8) = 37
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Length(37), Constraint::Min(10)])
         .split(area);
 
     f.render_widget(
-        Paragraph::new(label)
-            .block(Block::default().borders(Borders::LEFT | Borders::TOP | Borders::BOTTOM)),
+        Paragraph::new(label).style(Style::default().fg(Color::DarkGray)),
         chunks[0],
     );
 
     let bar_width = chunks[1].width as usize;
-    if bar_width <= 2 {
+    if bar_width == 0 {
         return;
-    } // Account for borders
-    let effective_width = bar_width - 2;
+    }
+
+    let effective_width = bar_width;
 
     let mut spans = Vec::new();
     let now = Utc::now();
+    let probe_interval = chrono::Duration::milliseconds(PROBE_INTERVAL_MS as i64);
 
     // Determine the window for this timeframe
     let elapsed_secs = now.signed_duration_since(state.session_start).num_seconds();
@@ -681,7 +846,12 @@ fn render_timeframe_row(f: &mut Frame, area: Rect, state: &TuiState, label: &str
         let mut has_slow = false;
 
         for round in state.history.iter() {
-            if round.timestamp >= bucket_start && round.timestamp < bucket_end {
+            // Gap fix: Check if the probe's validity window overlaps with the bucket
+            // Probe is valid for [timestamp, timestamp + interval)
+            // Overlap condition: start1 < end2 && start2 < end1
+            let probe_valid_until = round.timestamp + probe_interval;
+
+            if round.timestamp < bucket_end && probe_valid_until > bucket_start {
                 has_data = true;
 
                 // Disconnection: majority vote or high latency
@@ -718,10 +888,7 @@ fn render_timeframe_row(f: &mut Frame, area: Rect, state: &TuiState, label: &str
         spans.push(Span::styled(ch.to_string(), Style::default().fg(color)));
     }
 
-    f.render_widget(
-        Paragraph::new(Line::from(spans)).block(Block::default().borders(Borders::ALL)),
-        chunks[1],
-    );
+    f.render_widget(Paragraph::new(Line::from(spans)), chunks[1]);
 }
 
 fn render_long_term_status(f: &mut Frame, area: Rect, state: &TuiState) {
