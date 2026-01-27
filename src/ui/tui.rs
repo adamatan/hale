@@ -123,7 +123,7 @@ impl TuiState {
             .disconnections
             .iter()
             .filter(|d| d.end_time.is_some())
-            .last();
+            .next_back();
 
         if let Some(event) = last_completed {
             let seconds = event.duration_seconds();
