@@ -119,11 +119,7 @@ impl TuiState {
     }
 
     pub fn last_outage_duration(&self) -> String {
-        let last_completed = self
-            .disconnections
-            .iter()
-            .filter(|d| d.end_time.is_some())
-            .next_back();
+        let last_completed = self.disconnections.iter().rfind(|d| d.end_time.is_some());
 
         if let Some(event) = last_completed {
             let seconds = event.duration_seconds();
