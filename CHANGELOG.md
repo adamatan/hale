@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9](https://github.com/adamatan/hale/compare/v0.1.8...v0.1.9) - 2026-01-27
+
+### Features
+
+- implement unified history bars ([#6](https://github.com/adamatan/hale/pull/6))
+
 ## [0.1.4](https://github.com/adamatan/hale/compare/v0.1.3...v0.1.4) - 2026-01-26
 
 ### Other
