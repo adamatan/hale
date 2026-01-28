@@ -174,6 +174,9 @@ async fn run_cli_mode(
     format: ui::OutputFormat,
     verbose: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    // Start network info fetch in background
+    let net_info_task = tokio::spawn(async { net_info::refresh_network_info().await });
+
     // Create channel for probe results
     let (tx, mut rx) = mpsc::channel(100);
 
@@ -204,8 +207,11 @@ async fn run_cli_mode(
             let rounds: Vec<_> = history.iter().cloned().collect();
             let stats = aggregate_stats(&rounds);
 
+            // Wait for network info (should be ready by now)
+            let network_info = net_info_task.await.ok();
+
             // Display in CLI format
-            ui::cli::display_cli_stats(&stats, &format, verbose);
+            ui::cli::display_cli_stats(&stats, &format, verbose, network_info.as_ref());
 
             // Exit with appropriate code
             let exit_code = ui::cli::get_exit_code(stats.status);

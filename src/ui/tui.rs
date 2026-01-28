@@ -269,7 +269,7 @@ pub fn ui(f: &mut Frame, state: &TuiState) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(5), // Improved Status banner
-            Constraint::Length(4), // Network Info Block
+            Constraint::Length(6), // Network Info Block
             Constraint::Min(16),   // Main content
             Constraint::Length(6), // Long-term status
         ])
@@ -517,14 +517,20 @@ fn render_network_info(f: &mut Frame, area: Rect, state: &TuiState) {
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(inner_area);
 
-    // Left Column: Public IPs
-    let (ipv4, ipv6) = if let Some(info) = &state.network_info {
+    // Left Column: Public IPs and Location
+    let (ipv4, ipv6, location_line) = if let Some(info) = &state.network_info {
+        let loc = if let (Some(city), Some(country)) = (&info.city, &info.country) {
+            format!("{}, {}", city, country)
+        } else {
+            "N/A".to_string()
+        };
         (
             info.public_ipv4.as_deref().unwrap_or("N/A"),
             info.public_ipv6.as_deref().unwrap_or("N/A"),
+            loc,
         )
     } else {
-        ("Loading...", "Loading...")
+        ("Loading...", "Loading...", "Loading...".to_string())
     };
 
     let ip_lines = vec![
@@ -536,19 +542,31 @@ fn render_network_info(f: &mut Frame, area: Rect, state: &TuiState) {
             Span::styled("IPv6: ", Style::default().fg(Color::DarkGray)),
             Span::styled(ipv6, Style::default().fg(Color::White)),
         ]),
+        Line::from(vec![
+            Span::styled("Loc:  ", Style::default().fg(Color::DarkGray)),
+            Span::styled(location_line, Style::default().fg(Color::White)),
+        ]),
     ];
     f.render_widget(Paragraph::new(ip_lines), columns[0]);
 
-    // Right Column: Interface Info
-    let (if_name, if_type, local_ip, wifi_ssid) = if let Some(info) = &state.network_info {
+    // Right Column: Interface Info and ISP
+    let (if_name, if_type, local_ip, wifi_ssid, isp_line) = if let Some(info) = &state.network_info
+    {
+        let isp_display = match (&info.isp, &info.asn) {
+            (Some(isp), Some(asn)) => format!("{} ({})", isp, asn),
+            (Some(isp), None) => isp.clone(),
+            (None, Some(asn)) => asn.clone(),
+            (None, None) => "N/A".to_string(),
+        };
         (
             info.interface_name.as_deref().unwrap_or("Unknown"),
             info.interface_type.as_deref().unwrap_or(""),
             info.local_ip.as_deref().unwrap_or("N/A"),
             info.wifi_ssid.as_deref(),
+            isp_display,
         )
     } else {
-        ("...", "", "...", None)
+        ("...", "", "...", None, "...".to_string())
     };
 
     let type_display = if let Some(ssid) = wifi_ssid {
@@ -561,15 +579,19 @@ fn render_network_info(f: &mut Frame, area: Rect, state: &TuiState) {
 
     let interface_lines = vec![
         Line::from(vec![
-            Span::styled("Interface: ", Style::default().fg(Color::DarkGray)),
+            Span::styled("Int:   ", Style::default().fg(Color::DarkGray)),
             Span::styled(
                 format!("{}{}", if_name, type_display),
                 Style::default().fg(Color::Cyan),
             ),
         ]),
         Line::from(vec![
-            Span::styled("Local IP:  ", Style::default().fg(Color::DarkGray)),
+            Span::styled("Local: ", Style::default().fg(Color::DarkGray)),
             Span::styled(local_ip, Style::default().fg(Color::White)),
+        ]),
+        Line::from(vec![
+            Span::styled("ISP:   ", Style::default().fg(Color::DarkGray)),
+            Span::styled(isp_line, Style::default().fg(Color::White)),
         ]),
     ];
     f.render_widget(Paragraph::new(interface_lines), columns[1]);
