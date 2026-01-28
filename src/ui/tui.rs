@@ -1,4 +1,5 @@
 use crate::config::{HISTORY_WINDOW_SIZE, PROBE_INTERVAL_MS, TARGETS, TARGET_LABELS};
+use crate::monitor::net_info::NetworkInfo;
 use crate::monitor::{ConnectionStatus, NetworkStats, ProbeRound};
 use chrono::{DateTime, Utc};
 use crossterm::{
@@ -79,6 +80,7 @@ pub struct TuiState {
     pub session_start: DateTime<Utc>,
     pub disconnections: Vec<DisconnectionEvent>,
     pub last_status: Option<ConnectionStatus>,
+    pub network_info: Option<NetworkInfo>,
 }
 
 impl TuiState {
@@ -90,6 +92,7 @@ impl TuiState {
             session_start: Utc::now(),
             disconnections: Vec::new(),
             last_status: None,
+            network_info: None,
         }
     }
 
@@ -266,14 +269,16 @@ pub fn ui(f: &mut Frame, state: &TuiState) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(5), // Improved Status banner
+            Constraint::Length(4), // Network Info Block
             Constraint::Min(16),   // Main content
             Constraint::Length(6), // Long-term status
         ])
         .split(f.size());
 
     render_status_banner(f, main_chunks[0], state);
-    render_main_content(f, main_chunks[1], state);
-    render_long_term_status(f, main_chunks[2], state);
+    render_network_info(f, main_chunks[1], state);
+    render_main_content(f, main_chunks[2], state);
+    render_long_term_status(f, main_chunks[3], state);
 }
 
 fn render_status_banner(f: &mut Frame, area: Rect, state: &TuiState) {
@@ -499,6 +504,77 @@ fn render_status_banner(f: &mut Frame, area: Rect, state: &TuiState) {
         times_inner,
     );
 }
+
+fn render_network_info(f: &mut Frame, area: Rect, state: &TuiState) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title("Network Identity");
+    let inner_area = block.inner(area);
+    f.render_widget(block, area);
+
+    let columns = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(inner_area);
+
+    // Left Column: Public IPs
+    let (ipv4, ipv6) = if let Some(info) = &state.network_info {
+        (
+            info.public_ipv4.as_deref().unwrap_or("N/A"),
+            info.public_ipv6.as_deref().unwrap_or("N/A"),
+        )
+    } else {
+        ("Loading...", "Loading...")
+    };
+
+    let ip_lines = vec![
+        Line::from(vec![
+            Span::styled("IPv4: ", Style::default().fg(Color::DarkGray)),
+            Span::styled(ipv4, Style::default().fg(Color::White)),
+        ]),
+        Line::from(vec![
+            Span::styled("IPv6: ", Style::default().fg(Color::DarkGray)),
+            Span::styled(ipv6, Style::default().fg(Color::White)),
+        ]),
+    ];
+    f.render_widget(Paragraph::new(ip_lines), columns[0]);
+
+    // Right Column: Interface Info
+    let (if_name, if_type, local_ip, wifi_ssid) = if let Some(info) = &state.network_info {
+        (
+            info.interface_name.as_deref().unwrap_or("Unknown"),
+            info.interface_type.as_deref().unwrap_or(""),
+            info.local_ip.as_deref().unwrap_or("N/A"),
+            info.wifi_ssid.as_deref(),
+        )
+    } else {
+        ("...", "", "...", None)
+    };
+
+    let type_display = if let Some(ssid) = wifi_ssid {
+        format!(" (Wi-Fi: {})", ssid)
+    } else if !if_type.is_empty() {
+        format!(" ({})", if_type)
+    } else {
+        String::new()
+    };
+
+    let interface_lines = vec![
+        Line::from(vec![
+            Span::styled("Interface: ", Style::default().fg(Color::DarkGray)),
+            Span::styled(
+                format!("{}{}", if_name, type_display),
+                Style::default().fg(Color::Cyan),
+            ),
+        ]),
+        Line::from(vec![
+            Span::styled("Local IP:  ", Style::default().fg(Color::DarkGray)),
+            Span::styled(local_ip, Style::default().fg(Color::White)),
+        ]),
+    ];
+    f.render_widget(Paragraph::new(interface_lines), columns[1]);
+}
+
 fn render_main_content(f: &mut Frame, area: Rect, state: &TuiState) {
     let provider_count = TARGET_LABELS.len();
     let rows = Layout::default()

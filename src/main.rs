@@ -6,6 +6,7 @@ mod utils;
 
 use crate::analysis::aggregate_stats;
 use crate::config::HISTORY_WINDOW_SIZE;
+use crate::monitor::net_info::{self, NetworkInfo};
 use crate::monitor::prober::run_probe_loop;
 use crate::ui::parse_args;
 use crate::utils::logger::SessionLogger;
@@ -13,6 +14,7 @@ use crossterm::event::{Event, EventStream, KeyCode, KeyModifiers};
 use futures::StreamExt;
 use std::collections::VecDeque;
 use tokio::sync::mpsc;
+use tokio::time::Duration;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -48,9 +50,31 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
     let (stats_tx, mut stats_rx) =
         mpsc::channel::<(crate::monitor::NetworkStats, crate::monitor::ProbeRound)>(100);
 
+    // Create channel for network info
+    let (net_info_tx, mut net_info_rx) = mpsc::channel::<NetworkInfo>(10);
+
     // Start probe loop
     let _probe_handle = tokio::spawn(async move {
         run_probe_loop(probe_tx).await;
+    });
+
+    // Start network info refresh loop
+    let _net_info_handle = tokio::spawn(async move {
+        // Initial fetch
+        let info = net_info::refresh_network_info().await;
+        let _ = net_info_tx.send(info).await;
+
+        // Periodic fetch
+        let mut interval = tokio::time::interval(Duration::from_secs(5));
+        interval.tick().await; // First tick completes immediately, we already did initial fetch
+
+        loop {
+            interval.tick().await;
+            let info = net_info::refresh_network_info().await;
+            if net_info_tx.send(info).await.is_err() {
+                break;
+            }
+        }
     });
 
     // Start aggregation task
@@ -115,6 +139,11 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
                 Some((stats, latest_round)) = stats_rx.recv() => {
                     logger.log_stats(&stats)?;
                     tui_state.update_stats(stats, latest_round);
+                }
+
+                // Receive network info updates
+                Some(info) = net_info_rx.recv() => {
+                    tui_state.network_info = Some(info);
                 }
 
                 // Handle Ctrl+C signal
