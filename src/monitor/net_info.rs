@@ -56,12 +56,12 @@ async fn fetch_public_ip(service_host: &str) -> Option<String> {
         .unwrap_or(None)
 }
 
-fn get_wifi_ssid(interface_name: &str) -> Option<String> {
+fn get_wifi_ssid(_interface_name: &str) -> Option<String> {
     // macOS implementation using networksetup
     #[cfg(target_os = "macos")]
     {
         let output = Command::new("networksetup")
-            .args(&["-getairportnetwork", interface_name])
+            .args(&["-getairportnetwork", _interface_name])
             .output()
             .ok()?;
 
