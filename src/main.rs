@@ -208,10 +208,7 @@ async fn run_cli_mode(
             let stats = aggregate_stats(&rounds);
 
             // Wait for network info (should be ready by now)
-            let network_info = match net_info_task.await {
-                Ok(info) => Some(info),
-                Err(_) => None,
-            };
+            let network_info = net_info_task.await.ok();
 
             // Display in CLI format
             ui::cli::display_cli_stats(&stats, &format, verbose, network_info.as_ref());
