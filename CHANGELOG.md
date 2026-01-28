@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.13](https://github.com/adamatan/hale/compare/v0.1.12...v0.1.13) - 2026-01-28
+
+### Features
+
+- add geolocation and ISP info ([#11](https://github.com/adamatan/hale/pull/11))
+
 ## [0.1.12](https://github.com/adamatan/hale/compare/v0.1.11...v0.1.12) - 2026-01-28
 
 ### Bug Fixes
