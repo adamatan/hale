@@ -344,7 +344,7 @@ dependencies = [
 
 [[package]]
 name = "hale"
-version = "0.1.10"
+version = "0.1.11"
 dependencies = [
  "chrono",
  "clap",
