@@ -13,6 +13,10 @@ use crate::utils::logger::SessionLogger;
 use crossterm::event::{Event, EventStream, KeyCode, KeyModifiers};
 use futures::StreamExt;
 use std::collections::VecDeque;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 use tokio::sync::mpsc;
 use tokio::time::Duration;
 
@@ -101,40 +105,60 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
     // Create TUI state
     let mut tui_state = ui::tui::TuiState::new();
 
-    // Create async event stream for keyboard input
-    let mut event_stream = EventStream::new();
+    // Create shared atomic flag for quit signal
+    let should_quit = Arc::new(AtomicBool::new(false));
+    let should_quit_clone = should_quit.clone();
+
+    // Spawn dedicated task for keyboard handling
+    // This ensures keyboard events are processed immediately even if the main loop is busy
+    tokio::spawn(async move {
+        let mut event_stream = EventStream::new();
+
+        while let Some(maybe_event) = event_stream.next().await {
+            if let Ok(Event::Key(key)) = maybe_event {
+                match key.code {
+                    KeyCode::Char('q') | KeyCode::Char('Q') => {
+                        should_quit_clone.store(true, Ordering::SeqCst);
+                        break;
+                    }
+                    KeyCode::Char('c') | KeyCode::Char('C')
+                        if key.modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
+                        should_quit_clone.store(true, Ordering::SeqCst);
+                        break;
+                    }
+                    KeyCode::Char('d') | KeyCode::Char('D')
+                        if key.modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
+                        should_quit_clone.store(true, Ordering::SeqCst);
+                        break;
+                    }
+                    KeyCode::Esc => {
+                        should_quit_clone.store(true, Ordering::SeqCst);
+                        break;
+                    }
+                    _ => {}
+                }
+            }
+        }
+    });
 
     // Run TUI loop with logging
     let result = async {
         loop {
+            // Check quit flag
+            if should_quit.load(Ordering::SeqCst) {
+                tui_state.should_quit = true;
+            }
+
+            if tui_state.should_quit {
+                break;
+            }
+
             // Update terminal and handle events
             terminal.draw(|f| ui::tui::ui(f, &tui_state))?;
 
             tokio::select! {
-                // Handle keyboard events using async EventStream
-                // This is biased to prioritize keyboard events for responsive exit
-                biased;
-
-                maybe_event = event_stream.next() => {
-                    if let Some(Ok(Event::Key(key))) = maybe_event {
-                        match key.code {
-                            KeyCode::Char('q') | KeyCode::Char('Q') => {
-                                tui_state.should_quit = true;
-                            }
-                            KeyCode::Char('c') | KeyCode::Char('C') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                                tui_state.should_quit = true;
-                            }
-                            KeyCode::Char('d') | KeyCode::Char('D') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                                tui_state.should_quit = true;
-                            }
-                            KeyCode::Esc => {
-                                tui_state.should_quit = true;
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-
                 // Receive probe results and log status changes
                 Some((stats, latest_round)) = stats_rx.recv() => {
                     logger.log_stats(&stats)?;
