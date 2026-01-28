@@ -1174,4 +1174,101 @@ mod tests {
             duration
         );
     }
+
+    #[test]
+    fn test_render_site_row_performance() {
+        let mut state = TuiState::new();
+        let now = Utc::now();
+
+        // Fill history with 7200 items (simulating 1 hour)
+        for i in 0..7200 {
+            let timestamp = now - chrono::Duration::milliseconds((7200 - i) * 500);
+            let round = ProbeRound {
+                results: vec![PingResult {
+                    target: "8.8.8.8".to_string(),
+                    success: true,
+                    latency_ms: Some(20.0),
+                    timestamp,
+                }],
+                timestamp,
+            };
+            state.history.push_back(round);
+        }
+
+        let backend = TestBackend::new(100, 10);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        let start = std::time::Instant::now();
+
+        // Render 10 frames
+        for _ in 0..10 {
+            terminal
+                .draw(|f| {
+                    let area = Rect::new(0, 0, 100, 1);
+                    // idx 0 corresponds to the single target we added result for
+                    render_site_row(f, area, &state, 0, false);
+                })
+                .unwrap();
+        }
+
+        let duration = start.elapsed();
+        println!(
+            "Rendered 10 frames of site_row with full history in {:?}",
+            duration
+        );
+
+        assert!(
+            duration.as_millis() < 50,
+            "Rendering site_row took too long: {:?}",
+            duration
+        );
+    }
+
+    #[test]
+    fn test_render_global_row_performance() {
+        let mut state = TuiState::new();
+        let now = Utc::now();
+
+        // Fill history with 7200 items
+        for i in 0..7200 {
+            let timestamp = now - chrono::Duration::milliseconds((7200 - i) * 500);
+            let round = ProbeRound {
+                results: vec![PingResult {
+                    target: "8.8.8.8".to_string(),
+                    success: true,
+                    latency_ms: Some(20.0),
+                    timestamp,
+                }],
+                timestamp,
+            };
+            state.history.push_back(round);
+        }
+
+        let backend = TestBackend::new(100, 10);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        let start = std::time::Instant::now();
+
+        // Render 10 frames
+        for _ in 0..10 {
+            terminal
+                .draw(|f| {
+                    let area = Rect::new(0, 0, 100, 1);
+                    render_global_row(f, area, &state);
+                })
+                .unwrap();
+        }
+
+        let duration = start.elapsed();
+        println!(
+            "Rendered 10 frames of global_row with full history in {:?}",
+            duration
+        );
+
+        assert!(
+            duration.as_millis() < 50,
+            "Rendering global_row took too long: {:?}",
+            duration
+        );
+    }
 }

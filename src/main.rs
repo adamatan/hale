@@ -13,7 +13,10 @@ use crate::utils::logger::SessionLogger;
 use crossterm::event::{Event, EventStream, KeyCode, KeyModifiers};
 use futures::StreamExt;
 use std::collections::VecDeque;
-use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 use tokio::sync::mpsc;
 use tokio::time::Duration;
 
@@ -110,7 +113,7 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
     // This ensures keyboard events are processed immediately even if the main loop is busy
     tokio::spawn(async move {
         let mut event_stream = EventStream::new();
-        
+
         while let Some(maybe_event) = event_stream.next().await {
             if let Ok(Event::Key(key)) = maybe_event {
                 match key.code {
@@ -118,11 +121,15 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
                         should_quit_clone.store(true, Ordering::SeqCst);
                         break;
                     }
-                    KeyCode::Char('c') | KeyCode::Char('C') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                    KeyCode::Char('c') | KeyCode::Char('C')
+                        if key.modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
                         should_quit_clone.store(true, Ordering::SeqCst);
                         break;
                     }
-                    KeyCode::Char('d') | KeyCode::Char('D') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                    KeyCode::Char('d') | KeyCode::Char('D')
+                        if key.modifiers.contains(KeyModifiers::CONTROL) =>
+                    {
                         should_quit_clone.store(true, Ordering::SeqCst);
                         break;
                     }
