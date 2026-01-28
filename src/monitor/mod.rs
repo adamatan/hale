@@ -1,4 +1,5 @@
 pub mod prober;
+pub mod net_info;
 
 use chrono::{DateTime, Utc};
 
