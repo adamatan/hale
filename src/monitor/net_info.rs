@@ -12,6 +12,11 @@ pub struct NetworkInfo {
     pub interface_type: Option<String>,
     pub local_ip: Option<String>,
     pub wifi_ssid: Option<String>,
+    pub country: Option<String>,
+    pub city: Option<String>,
+    pub isp: Option<String>,
+    pub org: Option<String>,
+    pub asn: Option<String>,
 }
 
 impl NetworkInfo {
@@ -24,6 +29,11 @@ impl NetworkInfo {
             interface_type: None,
             local_ip: None,
             wifi_ssid: None,
+            country: None,
+            city: None,
+            isp: None,
+            org: None,
+            asn: None,
         }
     }
 }
@@ -44,7 +54,13 @@ async fn fetch_public_ip(service_host: &str) -> Option<String> {
 
         let parts: Vec<&str> = response.split("\r\n\r\n").collect();
         if parts.len() > 1 {
-            Some(parts[1].trim().to_string())
+            let body = parts[1].trim();
+            // Validate that the body is a valid IP address
+            if body.parse::<std::net::IpAddr>().is_ok() {
+                Some(body.to_string())
+            } else {
+                None
+            }
         } else {
             None
         }
@@ -123,12 +139,63 @@ async fn get_local_interface_info() -> (
     result.unwrap_or((None, None, None, None))
 }
 
+
+async fn fetch_geo_info() -> (
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+) {
+    let fetch_task = async {
+        let host = "ip-api.com";
+        let addr = format!("{}:80", host);
+        let mut stream = TcpStream::connect(&addr).await.ok()?;
+
+        let request = format!(
+            "GET /line/?fields=country,city,isp,org,as HTTP/1.0\r\nHost: {}\r\nUser-Agent: hale\r\n\r\n",
+            host
+        );
+        stream.write_all(request.as_bytes()).await.ok()?;
+
+        let mut response = String::new();
+        stream.read_to_string(&mut response).await.ok()?;
+
+        // Split by double CRLF to get body
+        let parts: Vec<&str> = response.split("\r\n\r\n").collect();
+        if parts.len() > 1 {
+            let body = parts[1];
+            let lines: Vec<&str> = body.trim().split('\n').collect();
+            
+            // Map lines to fields: country, city, isp, org, asn
+            let country = lines.get(0).map(|s| s.trim().to_string());
+            let city = lines.get(1).map(|s| s.trim().to_string());
+            let isp = lines.get(2).map(|s| s.trim().to_string());
+            let org = lines.get(3).map(|s| s.trim().to_string());
+            let asn = lines.get(4).map(|s| s.trim().to_string());
+            
+            Some((country, city, isp, org, asn))
+        } else {
+            None
+        }
+    };
+
+    // Timeout after 2 seconds
+    timeout(Duration::from_secs(2), fetch_task)
+        .await
+        .unwrap_or(None)
+        .unwrap_or((None, None, None, None, None))
+}
+
 pub async fn refresh_network_info() -> NetworkInfo {
-    let (ipv4, ipv6, (if_name, if_type, local_ip, wifi_ssid)) = tokio::join!(
+    let (ipv4, ipv6, (if_name, if_type, local_ip, wifi_ssid), geo_info) = tokio::join!(
         fetch_public_ip("api.ipify.org"),
         fetch_public_ip("api6.ipify.org"),
-        get_local_interface_info()
+        get_local_interface_info(),
+        fetch_geo_info()
     );
+
+    let (country, city, isp, org, asn) = geo_info;
 
     NetworkInfo {
         public_ipv4: ipv4,
@@ -137,5 +204,10 @@ pub async fn refresh_network_info() -> NetworkInfo {
         interface_type: if_type,
         local_ip,
         wifi_ssid,
+        country,
+        city,
+        isp,
+        org,
+        asn,
     }
 }
