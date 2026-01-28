@@ -92,23 +92,21 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
                 biased;
 
                 maybe_event = event_stream.next() => {
-                    if let Some(Ok(event)) = maybe_event {
-                        if let Event::Key(key) = event {
-                            match key.code {
-                                KeyCode::Char('q') | KeyCode::Char('Q') => {
-                                    tui_state.should_quit = true;
-                                }
-                                KeyCode::Char('c') | KeyCode::Char('C') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                                    tui_state.should_quit = true;
-                                }
-                                KeyCode::Char('d') | KeyCode::Char('D') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                                    tui_state.should_quit = true;
-                                }
-                                KeyCode::Esc => {
-                                    tui_state.should_quit = true;
-                                }
-                                _ => {}
+                    if let Some(Ok(Event::Key(key))) = maybe_event {
+                        match key.code {
+                            KeyCode::Char('q') | KeyCode::Char('Q') => {
+                                tui_state.should_quit = true;
                             }
+                            KeyCode::Char('c') | KeyCode::Char('C') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                                tui_state.should_quit = true;
+                            }
+                            KeyCode::Char('d') | KeyCode::Char('D') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                                tui_state.should_quit = true;
+                            }
+                            KeyCode::Esc => {
+                                tui_state.should_quit = true;
+                            }
+                            _ => {}
                         }
                     }
                 }
