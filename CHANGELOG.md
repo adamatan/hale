@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.10](https://github.com/adamatan/hale/compare/v0.1.9...v0.1.10) - 2026-01-28
+
+### Bug Fixes
+
+- improve bar rendering robustness with integer math and jitter tolerance ([#7](https://github.com/adamatan/hale/pull/7))
+
 ## [0.1.9](https://github.com/adamatan/hale/compare/v0.1.8...v0.1.9) - 2026-01-27
 
 ### Features
