@@ -9,6 +9,8 @@ use crate::config::HISTORY_WINDOW_SIZE;
 use crate::monitor::prober::run_probe_loop;
 use crate::ui::parse_args;
 use crate::utils::logger::SessionLogger;
+use crossterm::event::{Event, EventStream, KeyCode, KeyModifiers};
+use futures::StreamExt;
 use std::collections::VecDeque;
 use tokio::sync::mpsc;
 
@@ -75,6 +77,9 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
     // Create TUI state
     let mut tui_state = ui::tui::TuiState::new();
 
+    // Create async event stream for keyboard input
+    let mut event_stream = EventStream::new();
+
     // Run TUI loop with logging
     let result = async {
         loop {
@@ -82,13 +87,13 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
             terminal.draw(|f| ui::tui::ui(f, &tui_state))?;
 
             tokio::select! {
-                // Handle keyboard events
-                _ = tokio::task::spawn_blocking(|| {
-                    crossterm::event::poll(std::time::Duration::from_millis(100))
-                }) => {
-                    if crossterm::event::poll(std::time::Duration::from_millis(0))? {
-                        if let crossterm::event::Event::Key(key) = crossterm::event::read()? {
-                            use crossterm::event::{KeyCode, KeyModifiers};
+                // Handle keyboard events using async EventStream
+                // This is biased to prioritize keyboard events for responsive exit
+                biased;
+
+                maybe_event = event_stream.next() => {
+                    if let Some(Ok(event)) = maybe_event {
+                        if let Event::Key(key) = event {
                             match key.code {
                                 KeyCode::Char('q') | KeyCode::Char('Q') => {
                                     tui_state.should_quit = true;
