@@ -175,9 +175,7 @@ async fn run_cli_mode(
     verbose: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Start network info fetch in background
-    let net_info_task = tokio::spawn(async {
-        net_info::refresh_network_info().await
-    });
+    let net_info_task = tokio::spawn(async { net_info::refresh_network_info().await });
 
     // Create channel for probe results
     let (tx, mut rx) = mpsc::channel(100);

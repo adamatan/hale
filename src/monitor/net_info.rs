@@ -77,7 +77,7 @@ fn get_wifi_ssid(_interface_name: &str) -> Option<String> {
     #[cfg(target_os = "macos")]
     {
         let output = Command::new("networksetup")
-            .args(&["-getairportnetwork", _interface_name])
+            .args(["-getairportnetwork", _interface_name])
             .output()
             .ok()?;
 
@@ -139,7 +139,6 @@ async fn get_local_interface_info() -> (
     result.unwrap_or((None, None, None, None))
 }
 
-
 async fn fetch_geo_info() -> (
     Option<String>,
     Option<String>,
@@ -166,14 +165,14 @@ async fn fetch_geo_info() -> (
         if parts.len() > 1 {
             let body = parts[1];
             let lines: Vec<&str> = body.trim().split('\n').collect();
-            
+
             // Map lines to fields: country, city, isp, org, asn
-            let country = lines.get(0).map(|s| s.trim().to_string());
+            let country = lines.first().map(|s| s.trim().to_string());
             let city = lines.get(1).map(|s| s.trim().to_string());
             let isp = lines.get(2).map(|s| s.trim().to_string());
             let org = lines.get(3).map(|s| s.trim().to_string());
             let asn = lines.get(4).map(|s| s.trim().to_string());
-            
+
             Some((country, city, isp, org, asn))
         } else {
             None
