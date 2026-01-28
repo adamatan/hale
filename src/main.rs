@@ -61,11 +61,11 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
         // Initial fetch
         let info = net_info::refresh_network_info().await;
         let _ = net_info_tx.send(info).await;
-        
+
         // Periodic fetch
         let mut interval = tokio::time::interval(Duration::from_secs(5));
         interval.tick().await; // First tick completes immediately, we already did initial fetch
-        
+
         loop {
             interval.tick().await;
             let info = net_info::refresh_network_info().await;

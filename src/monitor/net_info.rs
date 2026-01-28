@@ -64,7 +64,7 @@ fn get_wifi_ssid(interface_name: &str) -> Option<String> {
             .args(&["-getairportnetwork", interface_name])
             .output()
             .ok()?;
-        
+
         let stdout = String::from_utf8_lossy(&output.stdout);
         // Output format: "Current Wi-Fi Network: MyWifiName\n"
         if stdout.contains("Current Wi-Fi Network:") {
@@ -75,10 +75,7 @@ fn get_wifi_ssid(interface_name: &str) -> Option<String> {
     // Linux implementation using iwgetid
     #[cfg(target_os = "linux")]
     {
-        let output = Command::new("iwgetid")
-            .arg("-r")
-            .output()
-            .ok()?;
+        let output = Command::new("iwgetid").arg("-r").output().ok()?;
         let ssid = String::from_utf8_lossy(&output.stdout).trim().to_string();
         if !ssid.is_empty() {
             return Some(ssid);
@@ -88,13 +85,18 @@ fn get_wifi_ssid(interface_name: &str) -> Option<String> {
     None
 }
 
-async fn get_local_interface_info() -> (Option<String>, Option<String>, Option<String>, Option<String>) {
+async fn get_local_interface_info() -> (
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+) {
     // Spawn blocking task for default-net
     let result = tokio::task::spawn_blocking(|| {
         if let Ok(interface) = default_net::get_default_interface() {
             let name = Some(interface.name.clone());
             let type_str = Some(format!("{:?}", interface.if_type));
-            
+
             // Try IPv4 first, then IPv6
             let local_ip = if !interface.ipv4.is_empty() {
                 Some(interface.ipv4[0].addr.to_string())
@@ -103,7 +105,7 @@ async fn get_local_interface_info() -> (Option<String>, Option<String>, Option<S
             } else {
                 None
             };
-            
+
             // Get SSID if wireless
             let ssid = if format!("{:?}", interface.if_type).contains("Wireless") {
                 get_wifi_ssid(&interface.name)
