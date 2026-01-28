@@ -721,6 +721,19 @@ fn render_site_row(f: &mut Frame, area: Rect, state: &TuiState, idx: usize, use_
             - chrono::Duration::seconds(window_seconds)
     };
 
+    // Optimization: Pre-filter history to only include relevant rounds
+    // Find the first round that ends after our window starts
+    let start_index = state
+        .history
+        .iter()
+        .position(|round| {
+            let probe_valid_until = round.timestamp + probe_interval + tolerance;
+            probe_valid_until > window_start
+        })
+        .unwrap_or(state.history.len());
+
+    let relevant_history: Vec<_> = state.history.iter().skip(start_index).collect();
+
     for i in 0..effective_width {
         let bucket_start_ms = (i as i64 * total_duration_ms) / effective_width as i64;
         let bucket_end_ms = ((i + 1) as i64 * total_duration_ms) / effective_width as i64;
@@ -731,7 +744,7 @@ fn render_site_row(f: &mut Frame, area: Rect, state: &TuiState, idx: usize, use_
         let mut has_data = false;
         let mut status = ConnectionStatus::Ok;
 
-        for round in state.history.iter() {
+        for round in &relevant_history {
             let probe_valid_until = round.timestamp + probe_interval + tolerance;
 
             if round.timestamp < bucket_end && probe_valid_until > bucket_start {
@@ -862,6 +875,19 @@ fn render_global_row(f: &mut Frame, area: Rect, state: &TuiState) {
             - chrono::Duration::seconds(window_seconds)
     };
 
+    // Optimization: Pre-filter history to only include relevant rounds
+    // Find the first round that ends after our window starts
+    let start_index = state
+        .history
+        .iter()
+        .position(|round| {
+            let probe_valid_until = round.timestamp + probe_interval + tolerance;
+            probe_valid_until > window_start
+        })
+        .unwrap_or(state.history.len());
+
+    let relevant_history: Vec<_> = state.history.iter().skip(start_index).collect();
+
     for i in 0..effective_width {
         let bucket_start_ms = (i as i64 * total_duration_ms) / effective_width as i64;
         let bucket_end_ms = ((i + 1) as i64 * total_duration_ms) / effective_width as i64;
@@ -872,7 +898,7 @@ fn render_global_row(f: &mut Frame, area: Rect, state: &TuiState) {
         let mut has_data = false;
         let mut status = ConnectionStatus::Ok;
 
-        for round in state.history.iter() {
+        for round in &relevant_history {
             let probe_valid_until = round.timestamp + probe_interval + tolerance;
 
             if round.timestamp < bucket_end && probe_valid_until > bucket_start {
