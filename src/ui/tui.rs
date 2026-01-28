@@ -540,17 +540,20 @@ fn render_network_info(f: &mut Frame, area: Rect, state: &TuiState) {
     f.render_widget(Paragraph::new(ip_lines), columns[0]);
 
     // Right Column: Interface Info
-    let (if_name, if_type, local_ip) = if let Some(info) = &state.network_info {
+    let (if_name, if_type, local_ip, wifi_ssid) = if let Some(info) = &state.network_info {
         (
             info.interface_name.as_deref().unwrap_or("Unknown"),
             info.interface_type.as_deref().unwrap_or(""),
             info.local_ip.as_deref().unwrap_or("N/A"),
+            info.wifi_ssid.as_deref(),
         )
     } else {
-        ("...", "", "...")
+        ("...", "", "...", None)
     };
 
-    let type_display = if !if_type.is_empty() {
+    let type_display = if let Some(ssid) = wifi_ssid {
+        format!(" (Wi-Fi: {})", ssid)
+    } else if !if_type.is_empty() {
         format!(" ({})", if_type)
     } else {
         String::new()

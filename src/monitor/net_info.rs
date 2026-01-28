@@ -1,4 +1,5 @@
 use default_net;
+use std::process::Command;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::time::{timeout, Duration};
@@ -10,9 +11,11 @@ pub struct NetworkInfo {
     pub interface_name: Option<String>,
     pub interface_type: Option<String>,
     pub local_ip: Option<String>,
+    pub wifi_ssid: Option<String>,
 }
 
 impl NetworkInfo {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             public_ipv4: None,
@@ -20,6 +23,7 @@ impl NetworkInfo {
             interface_name: None,
             interface_type: None,
             local_ip: None,
+            wifi_ssid: None,
         }
     }
 }
@@ -52,7 +56,39 @@ async fn fetch_public_ip(service_host: &str) -> Option<String> {
         .unwrap_or(None)
 }
 
-async fn get_local_interface_info() -> (Option<String>, Option<String>, Option<String>) {
+fn get_wifi_ssid(interface_name: &str) -> Option<String> {
+    // macOS implementation using networksetup
+    #[cfg(target_os = "macos")]
+    {
+        let output = Command::new("networksetup")
+            .args(&["-getairportnetwork", interface_name])
+            .output()
+            .ok()?;
+        
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        // Output format: "Current Wi-Fi Network: MyWifiName\n"
+        if stdout.contains("Current Wi-Fi Network:") {
+            return stdout.split(": ").nth(1).map(|s| s.trim().to_string());
+        }
+    }
+
+    // Linux implementation using iwgetid
+    #[cfg(target_os = "linux")]
+    {
+        let output = Command::new("iwgetid")
+            .arg("-r")
+            .output()
+            .ok()?;
+        let ssid = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if !ssid.is_empty() {
+            return Some(ssid);
+        }
+    }
+
+    None
+}
+
+async fn get_local_interface_info() -> (Option<String>, Option<String>, Option<String>, Option<String>) {
     // Spawn blocking task for default-net
     let result = tokio::task::spawn_blocking(|| {
         if let Ok(interface) = default_net::get_default_interface() {
@@ -68,18 +104,25 @@ async fn get_local_interface_info() -> (Option<String>, Option<String>, Option<S
                 None
             };
             
-            (name, type_str, local_ip)
+            // Get SSID if wireless
+            let ssid = if format!("{:?}", interface.if_type).contains("Wireless") {
+                get_wifi_ssid(&interface.name)
+            } else {
+                None
+            };
+
+            (name, type_str, local_ip, ssid)
         } else {
-            (None, None, None)
+            (None, None, None, None)
         }
     })
     .await;
 
-    result.unwrap_or((None, None, None))
+    result.unwrap_or((None, None, None, None))
 }
 
 pub async fn refresh_network_info() -> NetworkInfo {
-    let (ipv4, ipv6, (if_name, if_type, local_ip)) = tokio::join!(
+    let (ipv4, ipv6, (if_name, if_type, local_ip, wifi_ssid)) = tokio::join!(
         fetch_public_ip("api.ipify.org"),
         fetch_public_ip("api6.ipify.org"),
         get_local_interface_info()
@@ -91,5 +134,6 @@ pub async fn refresh_network_info() -> NetworkInfo {
         interface_name: if_name,
         interface_type: if_type,
         local_ip,
+        wifi_ssid,
     }
 }
