@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.12](https://github.com/adamatan/hale/compare/v0.1.11...v0.1.12) - 2026-01-28
+
+### Bug Fixes
+
+- resolve keyboard event race condition causing exit keys to stop working ([#10](https://github.com/adamatan/hale/pull/10))
+
+### Features
+
+- Add IP and Interface Info Block ([#9](https://github.com/adamatan/hale/pull/9))
+
 ## [0.1.10](https://github.com/adamatan/hale/compare/v0.1.9...v0.1.10) - 2026-01-28
 
 ### Bug Fixes
