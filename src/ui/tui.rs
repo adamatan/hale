@@ -979,6 +979,19 @@ fn render_summary_row(f: &mut Frame, area: Rect, state: &TuiState, label: &str, 
             - chrono::Duration::seconds(seconds)
     };
 
+    // Optimization: Pre-filter history to only include relevant rounds
+    // Find the first round that ends after our window starts
+    let start_index = state
+        .history
+        .iter()
+        .position(|round| {
+            let probe_valid_until = round.timestamp + probe_interval + tolerance;
+            probe_valid_until > window_start
+        })
+        .unwrap_or(state.history.len());
+
+    let relevant_history: Vec<_> = state.history.iter().skip(start_index).collect();
+
     for i in 0..effective_width {
         let bucket_start_ms = (i as i64 * total_duration_ms) / effective_width as i64;
         let bucket_end_ms = ((i + 1) as i64 * total_duration_ms) / effective_width as i64;
@@ -991,7 +1004,7 @@ fn render_summary_row(f: &mut Frame, area: Rect, state: &TuiState, label: &str, 
         let mut has_data = false;
         let mut has_slow = false;
 
-        for round in state.history.iter() {
+        for round in &relevant_history {
             // Gap fix: Check if the probe's validity window overlaps with the bucket
             // Probe is valid for [timestamp, timestamp + interval)
             // Overlap condition: start1 < end2 && start2 < end1
@@ -1077,4 +1090,62 @@ fn render_long_term_status(f: &mut Frame, area: Rect, state: &TuiState) {
     )));
 
     f.render_widget(Paragraph::new(lines).block(block), area);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::monitor::{PingResult, ProbeRound};
+    use ratatui::backend::TestBackend;
+    use ratatui::Terminal;
+
+    #[test]
+    fn test_render_summary_row_performance() {
+        let mut state = TuiState::new();
+        let now = Utc::now();
+
+        // Fill history with 7200 items (simulating 1 hour)
+        for i in 0..7200 {
+            let timestamp = now - chrono::Duration::milliseconds((7200 - i) * 500);
+            let round = ProbeRound {
+                results: vec![PingResult {
+                    target: "8.8.8.8".to_string(),
+                    success: true,
+                    latency_ms: Some(20.0),
+                    timestamp,
+                }],
+                timestamp,
+            };
+            state.history.push_back(round);
+        }
+
+        let backend = TestBackend::new(100, 10);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        let start = std::time::Instant::now();
+
+        // Render 10 frames
+        for _ in 0..10 {
+            terminal
+                .draw(|f| {
+                    let area = f.size();
+                    render_summary_row(f, area, &state, "Test", 300); // 5m window
+                })
+                .unwrap();
+        }
+
+        let duration = start.elapsed();
+        println!("Rendered 10 frames with full history in {:?}", duration);
+
+        // Assertion to ensure it's reasonably fast (e.g., < 100ms for 10 frames)
+        // Without optimization, this would likely be much slower.
+        // With optimization, O(width * relevant_history) vs O(width * full_history)
+        // relevant_history for 5m (300s) is 600 items. Full is 7200.
+        // So it should be ~10x faster.
+        assert!(
+            duration.as_millis() < 500,
+            "Rendering took too long: {:?}",
+            duration
+        );
+    }
 }
