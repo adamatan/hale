@@ -43,8 +43,9 @@
 
 ### Phase 1: Setup
 1.  Read `AGENTS.md`.
-2.  Create a unique branch (no slashes) and worktree.
-3.  Switch context to the worktree directory.
+2.  **Roadmap Check**: Check `docs/roadmap.md`. If the current task is missing, add it as a new line item (`- [ ] Task Name`).
+3.  Create a unique branch (no slashes) and worktree.
+4.  Switch context to the worktree directory.
 
 ### Phase 2: Implementation
 1.  **Tests First**: If fixing a bug, reproduce it with a test. If adding a feature, plan the test.
@@ -68,10 +69,13 @@
 2.  Run `cargo test` on `main` to verify stability.
 3.  **STOP**: Ask user for explicit confirmation to cleanup.
 4.  Upon confirmation:
-    ```bash
-    git worktree remove worktrees/<branch-name>
-    git branch -d <branch-name>
-    ```
+    1.  **Update Roadmap**: Mark the task as completed in `docs/roadmap.md` (`- [x] Task Name`).
+    2.  **Docs Cleanup**: Delete temporary files in `docs/` (e.g., PRDs, plans), **keeping** `docs/roadmap.md`.
+    3.  Remove worktree and branch:
+        ```bash
+        git worktree remove worktrees/<branch-name>
+        git branch -d <branch-name>
+        ```
 
 ## 4. Technical Constraints
 - **Async Runtime**: Use `tokio`. Avoid blocking threads.
