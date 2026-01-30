@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.18](https://github.com/adamatan/hale/compare/v0.1.17...v0.1.18) - 2026-01-30
+
+### Features
+
+- implement immediate keyboard handling ([#15](https://github.com/adamatan/hale/pull/15))
+
 ## [0.1.14](https://github.com/adamatan/hale/compare/v0.1.13...v0.1.14) - 2026-01-28
 
 ### Bug Fixes
