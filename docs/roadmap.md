@@ -3,7 +3,7 @@
 ## High Priority
 
 - [ ] **Agents Configuration (AGENTS.md)** - Add configuration file to instruct AI agents on desired workflows: testing requirements, architecture guidelines, git conventions (worktrees, branches), and working with PRs and GitHub Actions
-- [ ] **Immediate Keyboard Handling** - Implement responsive keyboard input (especially for immediate exit) using raw mode and async polling as seen in gping. See `docs/immediate-keyboard-detection.md`.
+- [x] **Immediate Keyboard Handling** - Implement responsive keyboard input (especially for immediate exit) using raw mode and async polling as seen in gping. See `docs/immediate-keyboard-detection.md`.
 - [ ] **Measurement Validation** - Add robust validations to ensure measurements are accurate and trustworthy (e.g., cross-check with system tools, sanity checks, outlier detection)
 - [ ] **Improve README** - Enhance with clearer value proposition (why use hale over ping/mtr) and more prominent quick start section
 - [ ] **UX Restructure** - Reorganize TUI layout, improve color scheme, add compact mode, keyboard shortcuts, group related info, merge duplicate data in blocks, add keyboard shortcuts help section
