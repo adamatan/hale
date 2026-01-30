@@ -13,10 +13,6 @@ use crate::utils::logger::SessionLogger;
 use crossterm::event::{Event, EventStream, KeyCode, KeyModifiers};
 use futures::StreamExt;
 use std::collections::VecDeque;
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
 use tokio::sync::mpsc;
 use tokio::time::Duration;
 
@@ -56,6 +52,9 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create channel for network info
     let (net_info_tx, mut net_info_rx) = mpsc::channel::<NetworkInfo>(10);
+
+    // Create channel for input events
+    let (input_tx, mut input_rx) = mpsc::channel::<Event>(100);
 
     // Start probe loop
     let _probe_handle = tokio::spawn(async move {
@@ -105,40 +104,19 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
     // Create TUI state
     let mut tui_state = ui::tui::TuiState::new();
 
-    // Create shared atomic flag for quit signal
-    let should_quit = Arc::new(AtomicBool::new(false));
-    let should_quit_clone = should_quit.clone();
-
     // Spawn dedicated task for keyboard handling
     // This ensures keyboard events are processed immediately even if the main loop is busy
     tokio::spawn(async move {
         let mut event_stream = EventStream::new();
 
         while let Some(maybe_event) = event_stream.next().await {
-            if let Ok(Event::Key(key)) = maybe_event {
-                match key.code {
-                    KeyCode::Char('q') | KeyCode::Char('Q') => {
-                        should_quit_clone.store(true, Ordering::SeqCst);
+            match maybe_event {
+                Ok(event) => {
+                    if input_tx.send(event).await.is_err() {
                         break;
                     }
-                    KeyCode::Char('c') | KeyCode::Char('C')
-                        if key.modifiers.contains(KeyModifiers::CONTROL) =>
-                    {
-                        should_quit_clone.store(true, Ordering::SeqCst);
-                        break;
-                    }
-                    KeyCode::Char('d') | KeyCode::Char('D')
-                        if key.modifiers.contains(KeyModifiers::CONTROL) =>
-                    {
-                        should_quit_clone.store(true, Ordering::SeqCst);
-                        break;
-                    }
-                    KeyCode::Esc => {
-                        should_quit_clone.store(true, Ordering::SeqCst);
-                        break;
-                    }
-                    _ => {}
                 }
+                Err(_) => break,
             }
         }
     });
@@ -146,11 +124,6 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
     // Run TUI loop with logging
     let result = async {
         loop {
-            // Check quit flag
-            if should_quit.load(Ordering::SeqCst) {
-                tui_state.should_quit = true;
-            }
-
             if tui_state.should_quit {
                 break;
             }
@@ -168,6 +141,31 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
                 // Receive network info updates
                 Some(info) = net_info_rx.recv() => {
                     tui_state.network_info = Some(info);
+                }
+
+                // Handle Input Events
+                Some(event) = input_rx.recv() => {
+                     if let Event::Key(key) = event {
+                        match key.code {
+                            KeyCode::Char('q') | KeyCode::Char('Q') => {
+                                tui_state.should_quit = true;
+                            }
+                            KeyCode::Char('c') | KeyCode::Char('C')
+                                if key.modifiers.contains(KeyModifiers::CONTROL) =>
+                            {
+                                tui_state.should_quit = true;
+                            }
+                            KeyCode::Char('d') | KeyCode::Char('D')
+                                if key.modifiers.contains(KeyModifiers::CONTROL) =>
+                            {
+                                tui_state.should_quit = true;
+                            }
+                            KeyCode::Esc => {
+                                tui_state.should_quit = true;
+                            }
+                            _ => {}
+                        }
+                    }
                 }
 
                 // Handle Ctrl+C signal
