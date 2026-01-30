@@ -50,7 +50,8 @@
 ### Phase 2: Implementation
 1.  **Tests First**: If fixing a bug, reproduce it with a test. If adding a feature, plan the test.
 2.  **Code**: Implement changes adhering to `clippy` and `fmt` standards.
-3.  **Verify**:
+3.  **Roadmap Update**: Mark the task as completed in `docs/roadmap.md` (`- [x] Task Name`).
+4.  **Verify**:
     ```bash
     cargo test
     cargo fmt --all -- --check
@@ -65,13 +66,17 @@
     - **Do not proceed** until PR is merged to `main`.
 
 ### Phase 4: Post-Merge & Cleanup
-1.  After merge, checkout `main` and pull latest.
-2.  Run `cargo test` on `main` to verify stability.
-3.  **STOP**: Ask user for explicit confirmation to cleanup.
-4.  Upon confirmation:
-    1.  **Update Roadmap**: Mark the task as completed in `docs/roadmap.md` (`- [x] Task Name`).
-    2.  **Docs Cleanup**: Delete temporary files in `docs/` (e.g., PRDs, plans), **keeping** `docs/roadmap.md`.
-    3.  Remove worktree and branch:
+1.  After merge, wait for `main` tests to pass and pull latest:
+    ```bash
+    while ! (git pull origin main && cargo test); do
+        echo "Waiting for main to stabilize..."
+        sleep 60
+    done
+    ```
+2.  **STOP**: Ask user for explicit confirmation to cleanup.
+3.  Upon confirmation:
+    1.  **Docs Cleanup**: Delete temporary files in `docs/` (e.g., PRDs, plans), **keeping** `docs/roadmap.md`.
+    2.  Remove worktree and branch:
         ```bash
         git worktree remove worktrees/<branch-name>
         git branch -d <branch-name>
