@@ -57,12 +57,12 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
     let (input_tx, mut input_rx) = mpsc::channel::<Event>(100);
 
     // Start probe loop
-    let _probe_handle = tokio::spawn(async move {
+    let probe_handle = tokio::spawn(async move {
         run_probe_loop(probe_tx).await;
     });
 
     // Start network info refresh loop
-    let _net_info_handle = tokio::spawn(async move {
+    let net_info_handle = tokio::spawn(async move {
         // Initial fetch
         let info = net_info::refresh_network_info().await;
         let _ = net_info_tx.send(info).await;
@@ -81,7 +81,7 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // Start aggregation task
-    let _agg_handle = tokio::spawn(async move {
+    let agg_handle = tokio::spawn(async move {
         let mut history = VecDeque::with_capacity(HISTORY_WINDOW_SIZE);
 
         while let Some(round) = probe_rx.recv().await {
@@ -106,7 +106,7 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
 
     // Spawn dedicated task for keyboard handling
     // This ensures keyboard events are processed immediately even if the main loop is busy
-    tokio::spawn(async move {
+    let keyboard_handle = tokio::spawn(async move {
         let mut event_stream = EventStream::new();
 
         while let Some(maybe_event) = event_stream.next().await {
@@ -182,6 +182,12 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
         Ok::<(), Box<dyn std::error::Error>>(())
     }
     .await;
+
+    // Abort background tasks to ensure quick shutdown
+    probe_handle.abort();
+    net_info_handle.abort();
+    agg_handle.abort();
+    keyboard_handle.abort();
 
     // Restore terminal
     ui::tui::restore_terminal(&mut terminal)?;
