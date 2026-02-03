@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.21](https://github.com/adamatan/hale/compare/v0.1.20...v0.1.21) - 2026-02-03
+
+### Bug Fixes
+
+- abort background tasks on quit to prevent hang ([#18](https://github.com/adamatan/hale/pull/18))
+
 ## [0.1.18](https://github.com/adamatan/hale/compare/v0.1.17...v0.1.18) - 2026-01-30
 
 ### Features
