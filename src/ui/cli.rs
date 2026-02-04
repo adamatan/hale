@@ -17,6 +17,14 @@ pub struct Cli {
     /// Enable verbose output
     #[arg(short, long)]
     pub verbose: bool,
+
+    /// Suppress exit summary
+    #[arg(long)]
+    pub silent: bool,
+
+    /// Show one-line summary instead of multi-line
+    #[arg(long)]
+    pub short: bool,
 }
 
 #[derive(Debug, Clone, Default, clap::ValueEnum)]

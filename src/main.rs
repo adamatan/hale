@@ -23,16 +23,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if cli.check {
         // CLI mode - single check and exit
-        run_cli_mode(cli.format, cli.verbose).await?;
+        run_cli_mode(cli.format, cli.verbose, cli.silent, cli.short).await?;
     } else {
         // TUI mode - continuous monitoring (default)
-        run_tui_mode().await?;
+        run_tui_mode(cli.silent, cli.short).await?;
     }
 
     Ok(())
 }
 
-async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
+async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::error::Error>> {
     // Setup panic hook to restore terminal
     ui::tui::setup_panic_hook();
 
@@ -192,6 +192,12 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
     // Restore terminal
     ui::tui::restore_terminal(&mut terminal)?;
 
+    // Display exit summary (unless --silent flag is set)
+    if !silent {
+        let summary = ui::format_summary(&tui_state, short);
+        println!("{}", summary);
+    }
+
     // Display log path
     println!("\nSession log saved to: {}", log_path.display());
 
@@ -201,6 +207,8 @@ async fn run_tui_mode() -> Result<(), Box<dyn std::error::Error>> {
 async fn run_cli_mode(
     format: ui::OutputFormat,
     verbose: bool,
+    silent: bool,
+    short: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Start network info fetch in background
     let net_info_task = tokio::spawn(async { net_info::refresh_network_info().await });
@@ -240,6 +248,14 @@ async fn run_cli_mode(
 
             // Display in CLI format
             ui::cli::display_cli_stats(&stats, &format, verbose, network_info.as_ref());
+
+            // Display exit summary (unless --silent flag is set)
+            if !silent {
+                let session_duration = 3; // ~3 seconds for 3 probe rounds
+                let summary =
+                    ui::format_cli_summary(&stats, network_info.as_ref(), session_duration, short);
+                println!("\n{}", summary);
+            }
 
             // Exit with appropriate code
             let exit_code = ui::cli::get_exit_code(stats.status);
