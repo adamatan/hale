@@ -3,3 +3,4 @@
 wt
 docs/*
 !docs/roadmap.md
+!docs/screenshot.png
