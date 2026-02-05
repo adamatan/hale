@@ -18,11 +18,15 @@ cargo install hale
 
 ### Basic Usage
 
+**Interactive TUI (default):**
 ```bash
-# Run the interactive TUI (default)
 hale
+```
+Full-screen dashboard for continuous monitoring with real-time status, per-provider history, and 5m/1h connection overviews. Press `q`, `ESC`, or `Ctrl+C` to exit.
 
-# Quick connection check (CLI mode)
+**CLI mode for scripts:**
+```bash
+# Quick check
 hale --check
 
 # Verbose output with timestamps
@@ -32,44 +36,12 @@ hale --check --verbose
 hale --check --format json
 ```
 
-## Main Commands
-
-### Interactive TUI Mode (Default)
-
-```bash
-hale
-```
-
-The default mode provides a full-screen dashboard for continuous monitoring:
-*   **Top Banner**: Real-time status, average latency, and uptime timer
-*   **Targets**: Live latency and status history for each of the 6 providers
-*   **Overview**: 5m and 1h sliding windows of your overall connection health
-*   **Exit**: Press `q`, `ESC`, or `Ctrl+C`
-
-### CLI Mode (One-shot Check)
-
-Ideal for quick checks or integration into scripts:
-
-```bash
-# Basic check
-hale --check
-
-# Verbose output
-hale --check --verbose
-
-# JSON output for scripts
-hale --check --format json
-```
-
 **Exit Codes:**
 *   `0`: Connection is **OK**
 *   `1`: Connection is **Slow** or **Disconnected**
 
 ## Key Features
 
-*   **Dual Mode Operation**:
-    *   **TUI (Default)**: Rich, real-time dashboard with historical status bars and per-provider metrics
-    *   **CLI (`--check`)**: One-shot diagnostic tool with proper exit codes for scripts and automation
 *   **Intelligent Analysis**:
     *   **Multi-Provider Probing**: Simultaneously monitors Google, AWS, Azure, Cloudflare, Quad9, and OpenDNS
     *   **Majority Voting**: Uses a 4/6 threshold to filter out localized network noise or single-provider outages
