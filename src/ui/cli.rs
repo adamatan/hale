@@ -5,7 +5,9 @@ use clap::Parser;
 #[command(name = "hale")]
 #[command(about = "Instant network connection quality monitor")]
 #[command(version)]
-#[command(after_help = "Exit Codes:\n  0 = Connection is OK\n  1 = Connection is Slow or Disconnected")]
+#[command(
+    after_help = "Exit Codes:\n  0 = Connection is OK\n  1 = No internet connection (completely disconnected)\n  2 = Degraded connection (slow or intermittent disconnections)"
+)]
 pub struct Cli {
     /// Run a single check and exit (CLI mode)
     #[arg(short = 'c', long = "check")]
@@ -153,10 +155,32 @@ fn display_json_format(stats: &NetworkStats, network_info: Option<&NetworkInfo>)
     println!("{}", json);
 }
 
-/// Get exit code based on connection status
+/// Get exit code based on connection status (CLI mode)
+/// - 0: Connection is OK
+/// - 1: No internet connection (completely disconnected)
+/// - 2: Degraded connection (slow or intermittent)
 pub fn get_exit_code(status: ConnectionStatus) -> i32 {
     match status {
         ConnectionStatus::Ok => 0,
-        ConnectionStatus::Slow | ConnectionStatus::Disconnected => 1,
+        ConnectionStatus::Disconnected => 1,
+        ConnectionStatus::Slow => 2,
+    }
+}
+
+/// Get exit code for TUI mode considering session history
+/// - 0: Connection is OK and no disconnections during session
+/// - 1: No internet connection (currently disconnected)
+/// - 2: Degraded connection (slow or had disconnections during session)
+pub fn get_tui_exit_code(status: ConnectionStatus, had_disconnections: bool) -> i32 {
+    match status {
+        ConnectionStatus::Disconnected => 1,
+        ConnectionStatus::Slow => 2,
+        ConnectionStatus::Ok => {
+            if had_disconnections {
+                2 // Had issues during session even though current status is OK
+            } else {
+                0 // Perfect session
+            }
+        }
     }
 }

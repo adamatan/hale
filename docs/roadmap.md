@@ -11,6 +11,7 @@
 
 ## Medium Priority
 
+- [x] **Exit Codes** - Implement meaningful exit codes: 0 for OK, 1 for no internet connection at all, 2 for disconnections detected
 - [ ] **Installation Packages** - Homebrew, GitHub binary releases, improved cargo install documentation, apt/deb packages
 - [ ] **Terminal Size Awareness** - Graceful degradation as terminal shrinks: status (always visible) → network stats → history → specific targets → aggregate. Minimum size = whatever can display status
 - [ ] **Custom Probe Targets** - CLI flags `--add-targets/-t` to extend default providers, `--replace-targets/-T` to use only custom targets
