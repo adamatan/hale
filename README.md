@@ -24,7 +24,7 @@ hale
 ```
 Full-screen dashboard for continuous monitoring with real-time status, per-provider history, and 5m/1h connection overviews. Press `q`, `ESC`, or `Ctrl+C` to exit.
 
-**CLI mode for scripts:**
+**CLI mode:**
 ```bash
 # Quick check
 hale --check
