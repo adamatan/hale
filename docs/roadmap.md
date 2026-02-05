@@ -6,7 +6,7 @@
 - [x] **Update Agent Workflow** - Update AGENTS.md to include roadmap updates in PR and improve cleanup phase.
 - [x] **Immediate Keyboard Handling** - Implement responsive keyboard input (especially for immediate exit) using raw mode and async polling as seen in gping. See `docs/immediate-keyboard-detection.md`.
 - [ ] **Measurement Validation** - Add robust validations to ensure measurements are accurate and trustworthy (e.g., cross-check with system tools, sanity checks, outlier detection)
-- [ ] **Improve README** - Enhance with clearer value proposition (why use hale over ping/mtr) and more prominent quick start section
+- [x] **Improve README** - Enhance with clearer value proposition (why use hale over ping/mtr) and more prominent quick start section
 - [ ] **UX Restructure** - Reorganize TUI layout, improve color scheme, add compact mode, keyboard shortcuts, group related info, merge duplicate data in blocks, add keyboard shortcuts help section
 
 ## Medium Priority
@@ -18,7 +18,7 @@
 - [ ] **Grievance Mode** - Generate copy-pasteable plain text paragraph with targets, test duration, average latency, downtime count, and average duration for ISP/network admin complaints
 - [ ] **CLI Commands in Reports** - Include CLI commands in reports so users can replicate tests (e.g., how to run the latency test from the command line)
 - [ ] **Help Screen (`?` key)** - htop-style help overlay showing all keyboard shortcuts and CLI commands users can run to validate the displayed stats
-- [ ] **Screenshot in README** - Add a screenshot of the TUI to the README for better first impressions
+- [x] **Screenshot in README** - Add a screenshot of the TUI to the README for better first impressions
 - [ ] **Local Network Health** - Show gateway reachability and latency separately from internet targets, distinguish LAN vs WAN issues
 
 ## Low Priority

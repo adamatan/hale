@@ -5,6 +5,9 @@ use clap::Parser;
 #[command(name = "hale")]
 #[command(about = "Instant network connection quality monitor")]
 #[command(version)]
+#[command(
+    after_help = "Exit Codes:\n  0 = Connection is OK\n  1 = Connection is Slow or Disconnected"
+)]
 pub struct Cli {
     /// Run a single check and exit (CLI mode)
     #[arg(short = 'c', long = "check")]
