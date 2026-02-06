@@ -201,7 +201,19 @@ async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::erro
     // Display log path
     println!("\nSession log saved to: {}", log_path.display());
 
-    result
+    // Exit with appropriate code based on session results
+    let final_status = tui_state
+        .stats
+        .as_ref()
+        .map(|s| s.status)
+        .unwrap_or(crate::monitor::ConnectionStatus::Disconnected);
+    let had_disconnections = !tui_state.disconnections.is_empty();
+    let exit_code = ui::cli::get_tui_exit_code(final_status, had_disconnections);
+
+    // Propagate any errors from the main loop
+    result?;
+
+    std::process::exit(exit_code);
 }
 
 async fn run_cli_mode(
