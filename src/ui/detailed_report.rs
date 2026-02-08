@@ -283,22 +283,32 @@ fn determine_score(uptime_stats: &UptimeStats, incidents: &[SessionIncident]) ->
         return SessionScore::Perfect;
     }
 
+    // Count significant incidents (disconnections or slow periods >5s)
+    let disconnection_count = incidents
+        .iter()
+        .filter(|i| i.status == ConnectionStatus::Disconnected)
+        .count();
+    let significant_slow_count = incidents
+        .iter()
+        .filter(|i| i.status == ConnectionStatus::Slow && i.duration_secs > 5.0)
+        .count();
+
     // Check for extended outages (>5 minutes)
     let has_extended_outage = incidents.iter().any(|i| i.duration_secs > 300.0);
 
     let total_uptime_pct = uptime_stats.ok_pct + uptime_stats.slow_pct;
 
-    // Unacceptable: <95% uptime OR extended outage
-    if total_uptime_pct < 95.0 || has_extended_outage {
+    // Unacceptable: <95% uptime OR extended outage OR multiple disconnections
+    if total_uptime_pct < 95.0 || has_extended_outage || disconnection_count > 3 {
         return SessionScore::Unacceptable;
     }
 
-    // Poor: 95-99% uptime OR multiple incidents
-    if total_uptime_pct < 99.0 || incidents.len() > 3 {
+    // Poor: 95-99% uptime OR frequent significant issues
+    if total_uptime_pct < 99.0 || significant_slow_count > 5 || disconnection_count > 0 {
         return SessionScore::Poor;
     }
 
-    // OK: Everything else (>99% uptime, no extended outages)
+    // OK: Everything else (>99% uptime, no disconnections, minimal slow periods)
     SessionScore::OK
 }
 
