@@ -213,9 +213,10 @@ async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::erro
     }
 
     // Display log paths
-    println!("\nSession log saved to: {}", log_path.display());
+    println!("\nLogs");
+    println!("  Session log saved to: {}", log_path.display());
     if let Some(path) = summary_path {
-        println!("Session summary saved to: {}", path.display());
+        println!("  Session summary saved to: {}", path.display());
     }
 
     // Exit with appropriate code based on session results
