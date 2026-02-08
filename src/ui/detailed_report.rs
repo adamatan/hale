@@ -463,8 +463,11 @@ fn format_detailed_report(report: &DetailedSessionReport) -> String {
     // Footer
     output.push_str(&divider);
     output.push('\n');
-    output.push_str("This report provides visibility into network quality issues.\n");
-    output.push_str("Learn more: https://github.com/adam-matan/hale\n");
+    output.push_str("Created by Hale - your internet connection checked\n\n");
+    output.push_str("DISCLAIMER: This software is provided \"AS IS\" without warranty of any kind.\n");
+    output.push_str("Network quality metrics are estimates and may not reflect actual conditions.\n\n");
+    output.push_str("License: MIT License - Copyright (c) 2026 Adam Matan\n");
+    output.push_str("Repository: https://github.com/adamatan/hale\n");
     output.push_str(&divider);
     output.push('\n');
 
