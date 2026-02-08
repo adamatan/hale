@@ -247,14 +247,26 @@ fn calculate_uptime_stats(
     let slow_secs = slow_rounds as f64 * seconds_per_round;
     let disconnected_secs = disconnected_rounds as f64 * seconds_per_round;
 
-    let total_secs = session_duration_secs as f64;
+    // Calculate total time based on actual probe rounds, not session duration
+    let total_secs = ok_secs + slow_secs + disconnected_secs;
+
+    // Avoid division by zero
+    let (ok_pct, slow_pct, disconnected_pct) = if total_secs > 0.0 {
+        (
+            (ok_secs / total_secs) * 100.0,
+            (slow_secs / total_secs) * 100.0,
+            (disconnected_secs / total_secs) * 100.0,
+        )
+    } else {
+        (0.0, 0.0, 0.0)
+    };
 
     UptimeStats {
-        ok_pct: (ok_secs / total_secs) * 100.0,
+        ok_pct,
         ok_secs,
-        slow_pct: (slow_secs / total_secs) * 100.0,
+        slow_pct,
         slow_secs,
-        disconnected_pct: (disconnected_secs / total_secs) * 100.0,
+        disconnected_pct,
         disconnected_secs,
     }
 }
@@ -464,8 +476,12 @@ fn format_detailed_report(report: &DetailedSessionReport) -> String {
     output.push_str(&divider);
     output.push('\n');
     output.push_str("Created by Hale - your internet connection checked\n\n");
-    output.push_str("DISCLAIMER: This software is provided \"AS IS\" without warranty of any kind.\n");
-    output.push_str("Network quality metrics are estimates and may not reflect actual conditions.\n\n");
+    output.push_str(
+        "DISCLAIMER: This software is provided \"AS IS\" without warranty of any kind.\n",
+    );
+    output.push_str(
+        "Network quality metrics are estimates and may not reflect actual conditions.\n\n",
+    );
     output.push_str("License: MIT License - Copyright (c) 2026 Adam Matan\n");
     output.push_str("Repository: https://github.com/adamatan/hale\n");
     output.push_str(&divider);
