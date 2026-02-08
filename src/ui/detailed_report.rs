@@ -398,6 +398,7 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
     output.push_str(&format!("  {}\n", report.score.description()));
 
     // Session Metadata
+    output.push('\n');
     output.push_str("Session Metadata\n");
     output.push_str(&format!(
         "  Start:    {} ({})\n",
@@ -416,6 +417,7 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
     output.push_str(&format!("  Targets:  {}\n", report.targets_list));
 
     // Uptime Statistics
+    output.push('\n');
     output.push_str("Uptime Statistics\n");
     output.push_str(&format!(
         "  OK:           {:6.2}%  ({})\n",
@@ -434,6 +436,7 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
     ));
 
     // Incident Counts
+    output.push('\n');
     output.push_str("Incident Summary\n");
     output.push_str(&format!(
         "  Disconnections: {}\n",
@@ -443,6 +446,7 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
 
     // Detailed Issues Table
     if !report.incidents.is_empty() {
+        output.push('\n');
         output.push_str("Detailed Issues\n");
         output.push_str(&format!(
             "  {:20} {:13} {:12} {:12}\n",
@@ -467,6 +471,7 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
     }
 
     // Score Legend
+    output.push('\n');
     output.push_str("Score Legend\n");
     output.push_str("  Perfect:      100% uptime with no degradation\n");
     output.push_str("  OK:           >99% uptime with minimal issues\n");

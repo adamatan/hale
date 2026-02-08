@@ -213,14 +213,14 @@ async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::erro
     }
 
     // Display log paths
-    println!("Logs");
+    println!("\nLogs");
     println!("  Session log saved to: {}", log_path.display());
     if let Some(path) = summary_path {
         println!("  Session summary saved to: {}", path.display());
     }
 
     // About
-    println!("About");
+    println!("\nAbout");
     println!("  Created by Hale - your internet connection checker");
     println!("  Repository: https://github.com/adamatan/hale");
 
