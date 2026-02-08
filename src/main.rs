@@ -223,6 +223,9 @@ async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::erro
     println!("\nAbout");
     println!("  Created by Hale - your internet connection checker");
     println!("  Repository: https://github.com/adamatan/hale");
+    println!();
+    println!("  DISCLAIMER: This software is provided \"AS IS\" without warranty of any kind.");
+    println!("  Network quality metrics are estimates and may not reflect actual conditions.");
 
     // Exit with appropriate code based on session results
     let final_status = tui_state
