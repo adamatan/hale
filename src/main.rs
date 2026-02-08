@@ -192,14 +192,31 @@ async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::erro
     // Restore terminal
     ui::tui::restore_terminal(&mut terminal)?;
 
-    // Display exit summary (unless --silent flag is set)
+    // Generate and write detailed report
+    let summary_path = if let Ok(path) = ui::write_detailed_report(&tui_state) {
+        Some(path)
+    } else {
+        None
+    };
+
+    // Display appropriate summary based on --short flag (unless --silent flag is set)
     if !silent {
-        let summary = ui::format_summary(&tui_state, short);
-        println!("{}", summary);
+        if short {
+            let summary = ui::format_summary(&tui_state, true);
+            println!("{}", summary);
+        } else {
+            // Display detailed report to console
+            if let Ok(report) = ui::generate_detailed_report(&tui_state) {
+                println!("{}", report);
+            }
+        }
     }
 
-    // Display log path
+    // Display log paths
     println!("\nSession log saved to: {}", log_path.display());
+    if let Some(path) = summary_path {
+        println!("Session summary saved to: {}", path.display());
+    }
 
     // Exit with appropriate code based on session results
     let final_status = tui_state
