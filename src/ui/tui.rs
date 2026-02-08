@@ -270,8 +270,8 @@ pub fn ui(f: &mut Frame, state: &TuiState) {
         .constraints([
             Constraint::Length(5), // Improved Status banner
             Constraint::Length(6), // Network Info Block
-            Constraint::Min(16),   // Main content
-            Constraint::Length(6), // Long-term status
+            Constraint::Min(16),   // Main content (will expand by 5 lines)
+            Constraint::Length(1), // Quit instruction footer
         ])
         .split(f.size());
 
@@ -1076,46 +1076,14 @@ fn render_summary_row(f: &mut Frame, area: Rect, state: &TuiState, label: &str, 
     f.render_widget(Paragraph::new(Line::from(spans)), chunks[1]);
 }
 
-fn render_long_term_status(f: &mut Frame, area: Rect, state: &TuiState) {
-    let block = Block::default()
-        .title("Session Info")
-        .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::White));
-
-    let running_time = state.format_running_time();
-    let mut lines = vec![Line::from(Span::styled(
-        format!("Running time: {}", running_time),
-        Style::default().fg(Color::Cyan),
-    ))];
-
-    let recent_disconnections: Vec<_> = state.disconnections.iter().rev().take(3).collect();
-    if recent_disconnections.is_empty() {
-        lines.push(Line::from(Span::styled(
-            "No disconnections",
-            Style::default().fg(Color::Green),
-        )));
-    } else {
-        for event in recent_disconnections {
-            let duration = event.duration_seconds();
-            let status_text = if event.end_time.is_some() {
-                format!("Disconnection: {}s (recovered)", duration)
-            } else {
-                format!("Disconnection: {}s (ongoing)", duration)
-            };
-            lines.push(Line::from(Span::styled(
-                status_text,
-                Style::default().fg(Color::Red),
-            )));
-        }
-    }
-
-    lines.push(Line::from(""));
-    lines.push(Line::from(Span::styled(
+fn render_long_term_status(f: &mut Frame, area: Rect, _state: &TuiState) {
+    let quit_text = Paragraph::new(Line::from(Span::styled(
         "Press 'q' to quit",
         Style::default().fg(Color::DarkGray),
-    )));
+    )))
+    .alignment(Alignment::Center);
 
-    f.render_widget(Paragraph::new(lines).block(block), area);
+    f.render_widget(quit_text, area);
 }
 
 #[cfg(test)]
