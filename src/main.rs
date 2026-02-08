@@ -202,7 +202,8 @@ async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::erro
     // Display appropriate summary based on --short flag (unless --silent flag is set)
     if !silent {
         if short {
-            let summary = ui::format_summary_with_report_path(&tui_state, true, summary_path.as_deref());
+            let summary =
+                ui::format_summary_with_report_path(&tui_state, true, summary_path.as_deref());
             println!("{}", summary);
         } else {
             // Display detailed report to console
@@ -222,8 +223,12 @@ async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::erro
             println!("  Created by Hale - your internet connection checker");
             println!("  Repository: https://github.com/adamatan/hale");
             println!();
-            println!("  DISCLAIMER: This software is provided \"AS IS\" without warranty of any kind.");
-            println!("  Network quality metrics are estimates and may not reflect actual conditions.");
+            println!(
+                "  DISCLAIMER: This software is provided \"AS IS\" without warranty of any kind."
+            );
+            println!(
+                "  Network quality metrics are estimates and may not reflect actual conditions."
+            );
         }
     }
 
