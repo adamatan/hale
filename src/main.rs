@@ -193,11 +193,7 @@ async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::erro
     ui::tui::restore_terminal(&mut terminal)?;
 
     // Generate and write detailed report
-    let summary_path = if let Ok(path) = ui::write_detailed_report(&tui_state) {
-        Some(path)
-    } else {
-        None
-    };
+    let summary_path = ui::write_detailed_report(&tui_state).ok();
 
     // Display appropriate summary based on --short flag (unless --silent flag is set)
     if !silent {
