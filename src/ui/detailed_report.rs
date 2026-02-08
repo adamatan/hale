@@ -401,15 +401,21 @@ fn format_network_info(
     if let Some(info) = network_info {
         // If there were changes, add those lines first
         if ip_change_count > 0 {
-            lines.push(format!("  IP changed {} time{} during session",
+            lines.push(format!(
+                "  IP changed {} time{} during session",
                 ip_change_count,
                 if ip_change_count == 1 { "" } else { "s" }
             ));
         }
         if isp_location_change_count > 0 {
-            lines.push(format!("  ISP/Location changed {} time{} during session",
+            lines.push(format!(
+                "  ISP/Location changed {} time{} during session",
                 isp_location_change_count,
-                if isp_location_change_count == 1 { "" } else { "s" }
+                if isp_location_change_count == 1 {
+                    ""
+                } else {
+                    "s"
+                }
             ));
         }
 
@@ -622,7 +628,11 @@ fn format_detailed_report_markdown(report: &DetailedSessionReport) -> String {
             output.push_str(&format!(
                 "- **ISP/Location changed {} time{} during session**\n",
                 report.isp_location_change_count,
-                if report.isp_location_change_count == 1 { "" } else { "s" }
+                if report.isp_location_change_count == 1 {
+                    ""
+                } else {
+                    "s"
+                }
             ));
         }
 
@@ -651,7 +661,10 @@ fn format_detailed_report_markdown(report: &DetailedSessionReport) -> String {
         // Location (City, Country)
         match (&info.city, &info.country) {
             (Some(city), Some(country)) => {
-                output.push_str(&format!("- **{}Location:** {}, {}\n", prefix, city, country));
+                output.push_str(&format!(
+                    "- **{}Location:** {}, {}\n",
+                    prefix, city, country
+                ));
             }
             (None, Some(country)) => {
                 output.push_str(&format!("- **{}Location:** {}\n", prefix, country));
