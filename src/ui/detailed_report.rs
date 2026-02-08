@@ -373,22 +373,34 @@ fn get_timezone_abbrev() -> String {
     }
 }
 
+/// Get emoji indicator for session score
+fn get_score_emoji(score: &SessionScore) -> &str {
+    match score {
+        SessionScore::Perfect => "✅",
+        SessionScore::OK => "✅",
+        SessionScore::Poor => "⚠️",
+        SessionScore::Unacceptable => "❌",
+        SessionScore::NoConnection => "❌",
+    }
+}
+
 /// Format the detailed session report for console output (clean, readable)
 fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
     let mut output = String::new();
     let tz = get_timezone_abbrev();
 
     // Header
-    output.push_str("HALE SESSION SUMMARY\n");
+    output.push_str("Hale Session Summary\n");
     output.push_str("━".repeat(80).as_str());
     output.push_str("\n\n");
 
     // Session Score
-    output.push_str(&format!("SESSION SCORE: {:?}\n", report.score));
+    let emoji = get_score_emoji(&report.score);
+    output.push_str(&format!("{} Session Score: {:?}\n", emoji, report.score));
     output.push_str(&format!("  {}\n\n", report.score.description()));
 
     // Session Metadata
-    output.push_str("SESSION METADATA\n");
+    output.push_str("Session Metadata\n");
     output.push_str(&format!(
         "  Start:    {} ({})\n",
         report.session_start.format("%Y-%m-%d %H:%M:%S"),
@@ -406,7 +418,7 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
     output.push_str(&format!("  Targets:  {}\n\n", report.targets_list));
 
     // Uptime Statistics
-    output.push_str("UPTIME STATISTICS\n");
+    output.push_str("Uptime Statistics\n");
     output.push_str(&format!(
         "  OK:           {:6.2}%  ({})\n",
         report.uptime_stats.ok_pct,
@@ -424,7 +436,7 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
     ));
 
     // Incident Counts
-    output.push_str("INCIDENT SUMMARY\n");
+    output.push_str("Incident Summary\n");
     output.push_str(&format!(
         "  Disconnections: {}\n",
         report.disconnection_count
@@ -433,7 +445,7 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
 
     // Detailed Issues Table
     if !report.incidents.is_empty() {
-        output.push_str("DETAILED ISSUES\n");
+        output.push_str("Detailed Issues\n");
         output.push_str(&format!(
             "  {:20} {:13} {:12} {:12}\n",
             "Timestamp", "Status", "Duration", "Avg Latency"
@@ -442,7 +454,7 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
 
         for incident in &report.incidents {
             let timestamp_str = format!("{}", incident.timestamp.format("%Y-%m-%d %H:%M:%S"));
-            let status_str = format!("{:?}", incident.status).to_uppercase();
+            let status_str = format!("{:?}", incident.status);
             let duration_str = format_duration(incident.duration_secs);
             let latency_str = if let Some(lat) = incident.avg_latency_ms {
                 format!("{:.1} ms", lat)
