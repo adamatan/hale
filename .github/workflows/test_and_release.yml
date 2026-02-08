@@ -80,8 +80,8 @@ jobs:
   build-deb:
     name: Build Debian Package
     runs-on: ubuntu-latest
-    needs: release
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: test
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/docs-roadmap-deb-subtask') && github.event_name == 'push'
     permissions:
       contents: write
     steps:
@@ -94,7 +94,7 @@ jobs:
         id: get_tag
         run: |
           git fetch --tags
-          TAG=$(git describe --tags --abbrev=0)
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0-test")
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "version=${TAG#v}" >> $GITHUB_OUTPUT
 
@@ -113,7 +113,15 @@ jobs:
       - name: Build .deb package
         run: cargo deb --no-build
 
-      - name: Upload .deb to GitHub Release
+      - name: Upload .deb as artifact (for testing)
+        if: github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-package
+          path: target/debian/*.deb
+
+      - name: Upload .deb to GitHub Release (main only)
+        if: github.ref == 'refs/heads/main'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -124,16 +132,24 @@ jobs:
     name: Test Debian Package Installation
     runs-on: ubuntu-latest
     needs: build-deb
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/docs-roadmap-deb-subtask') && github.event_name == 'push'
     steps:
-      - name: Get latest tag
+      - name: Download .deb from artifact (branch testing)
+        if: github.ref != 'refs/heads/main'
+        uses: actions/download-artifact@v4
+        with:
+          name: debian-package
+
+      - name: Get latest tag (main only)
+        if: github.ref == 'refs/heads/main'
         id: get_tag
         run: |
           curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | \
             jq -r '.tag_name' > tag.txt
           echo "tag=$(cat tag.txt)" >> $GITHUB_OUTPUT
 
-      - name: Download .deb from release
+      - name: Download .deb from release (main only)
+        if: github.ref == 'refs/heads/main'
         run: |
           TAG=${{ steps.get_tag.outputs.tag }}
           DEB_NAME="hale_${TAG#v}_amd64.deb"
