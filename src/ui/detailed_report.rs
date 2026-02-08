@@ -373,8 +373,102 @@ fn get_timezone_abbrev() -> String {
     }
 }
 
-/// Format the detailed session report in Markdown
-fn format_detailed_report(report: &DetailedSessionReport) -> String {
+/// Format the detailed session report for console output (clean, readable)
+fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
+    let mut output = String::new();
+    let tz = get_timezone_abbrev();
+
+    // Header
+    output.push_str("HALE SESSION SUMMARY\n");
+    output.push_str("━".repeat(80).as_str());
+    output.push_str("\n\n");
+
+    // Session Score
+    output.push_str(&format!("SESSION SCORE: {:?}\n", report.score));
+    output.push_str(&format!("  {}\n\n", report.score.description()));
+
+    // Session Metadata
+    output.push_str("SESSION METADATA\n");
+    output.push_str(&format!(
+        "  Start:    {} ({})\n",
+        report.session_start.format("%Y-%m-%d %H:%M:%S"),
+        tz
+    ));
+    output.push_str(&format!(
+        "  End:      {} ({})\n",
+        report.session_end.format("%Y-%m-%d %H:%M:%S"),
+        tz
+    ));
+    output.push_str(&format!(
+        "  Duration: {}\n",
+        format_duration(report.session_duration_secs as f64)
+    ));
+    output.push_str(&format!("  Targets:  {}\n\n", report.targets_list));
+
+    // Uptime Statistics
+    output.push_str("UPTIME STATISTICS\n");
+    output.push_str(&format!(
+        "  OK:           {:6.2}%  ({})\n",
+        report.uptime_stats.ok_pct,
+        format_duration(report.uptime_stats.ok_secs)
+    ));
+    output.push_str(&format!(
+        "  Slow:         {:6.2}%  ({})\n",
+        report.uptime_stats.slow_pct,
+        format_duration(report.uptime_stats.slow_secs)
+    ));
+    output.push_str(&format!(
+        "  Disconnected: {:6.2}%  ({})\n\n",
+        report.uptime_stats.disconnected_pct,
+        format_duration(report.uptime_stats.disconnected_secs)
+    ));
+
+    // Incident Counts
+    output.push_str("INCIDENT SUMMARY\n");
+    output.push_str(&format!(
+        "  Disconnections: {}\n",
+        report.disconnection_count
+    ));
+    output.push_str(&format!("  Slow Periods:   {}\n\n", report.slow_count));
+
+    // Detailed Issues Table
+    if !report.incidents.is_empty() {
+        output.push_str("DETAILED ISSUES\n");
+        output.push_str(&format!(
+            "  {:20} {:13} {:12} {:12}\n",
+            "Timestamp", "Status", "Duration", "Avg Latency"
+        ));
+        output.push_str(&format!("  {}\n", "─".repeat(60)));
+
+        for incident in &report.incidents {
+            let timestamp_str = format!("{}", incident.timestamp.format("%Y-%m-%d %H:%M:%S"));
+            let status_str = format!("{:?}", incident.status).to_uppercase();
+            let duration_str = format_duration(incident.duration_secs);
+            let latency_str = if let Some(lat) = incident.avg_latency_ms {
+                format!("{:.1} ms", lat)
+            } else {
+                "N/A".to_string()
+            };
+
+            output.push_str(&format!(
+                "  {:20} {:13} {:12} {:12}\n",
+                timestamp_str, status_str, duration_str, latency_str
+            ));
+        }
+        output.push('\n');
+    }
+
+    // Footer
+    output.push_str("━".repeat(80).as_str());
+    output.push('\n');
+    output.push_str("Created by Hale - your internet connection checker\n");
+    output.push_str("Repository: https://github.com/adamatan/hale\n");
+
+    output
+}
+
+/// Format the detailed session report in Markdown for file output
+fn format_detailed_report_markdown(report: &DetailedSessionReport) -> String {
     let mut output = String::new();
     let tz = get_timezone_abbrev();
 
@@ -478,16 +572,16 @@ fn format_detailed_report(report: &DetailedSessionReport) -> String {
     output
 }
 
-/// Generate detailed report string from TUI state
+/// Generate detailed report string for console output
 pub fn generate_detailed_report(state: &TuiState) -> Result<String, Box<dyn std::error::Error>> {
     let report = calculate_report(state);
-    Ok(format_detailed_report(&report))
+    Ok(format_detailed_report_console(&report))
 }
 
-/// Write detailed report to file and return the path
+/// Write detailed report to file in Markdown format and return the path
 pub fn write_detailed_report(state: &TuiState) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let report = calculate_report(state);
-    let formatted = format_detailed_report(&report);
+    let formatted = format_detailed_report_markdown(&report);
 
     // Generate filename with timestamp
     let timestamp = Local::now().format("%Y%m%d-%H%M%S");
