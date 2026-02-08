@@ -3,9 +3,19 @@ use crate::monitor::{ConnectionStatus, NetworkStats};
 use crate::ui::tui::TuiState;
 
 /// Format session summary for TUI mode exit
+#[allow(dead_code)]
 pub fn format_summary(state: &TuiState, short: bool) -> String {
+    format_summary_with_report_path(state, short, None)
+}
+
+/// Format session summary for TUI mode exit with optional report path
+pub fn format_summary_with_report_path(
+    state: &TuiState,
+    short: bool,
+    report_path: Option<&std::path::Path>,
+) -> String {
     if short {
-        format_short_summary(state)
+        format_short_summary(state, report_path)
     } else {
         format_default_summary(state)
     }
@@ -151,7 +161,7 @@ fn format_default_summary(state: &TuiState) -> String {
 }
 
 /// Format short (one-line) summary for TUI mode
-fn format_short_summary(state: &TuiState) -> String {
+fn format_short_summary(state: &TuiState, report_path: Option<&std::path::Path>) -> String {
     // Check if we have any data
     if state.stats.is_none() && state.history.is_empty() {
         return "No data collected".to_string();
@@ -196,10 +206,17 @@ fn format_short_summary(state: &TuiState) -> String {
 
     let running_time = state.format_running_time();
 
-    format!(
+    let mut output = format!(
         "{} {:.1}% uptime | {:.0}ms | {} | (test duration: {})",
         status_symbol, uptime_pct, latency_ms, network_short, running_time
-    )
+    );
+
+    // Append report path if provided
+    if let Some(path) = report_path {
+        output.push_str(&format!(" | Report: {}", path.display()));
+    }
+
+    output
 }
 
 /// Format default (multi-line) summary for CLI mode

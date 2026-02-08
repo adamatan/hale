@@ -202,7 +202,7 @@ async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::erro
     // Display appropriate summary based on --short flag (unless --silent flag is set)
     if !silent {
         if short {
-            let summary = ui::format_summary(&tui_state, true);
+            let summary = ui::format_summary_with_report_path(&tui_state, true, summary_path.as_deref());
             println!("{}", summary);
         } else {
             // Display detailed report to console
