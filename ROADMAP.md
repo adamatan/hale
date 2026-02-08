@@ -17,7 +17,7 @@ This document outlines completed features and future development plans for Hale,
   - Session score calculation (Perfect/OK/Poor/Unacceptable/NoConnection)
   - Uptime statistics with absolute time breakdown
   - Incident timeline with timestamps and durations
-  - Automatic report generation to `/tmp/hale-summary-{timestamp}.txt`
+  - Automatic report generation to `/tmp/hale-summary-{timestamp}.md` (Markdown format)
   - Console display (detailed by default, short with `--short` flag)
 - ✅ Session logging to `/tmp/hale-{timestamp}.log`
 - ✅ Short summary output format

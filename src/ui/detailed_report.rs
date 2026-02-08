@@ -373,81 +373,72 @@ fn get_timezone_abbrev() -> String {
     }
 }
 
-/// Format the detailed session report
+/// Format the detailed session report in Markdown
 fn format_detailed_report(report: &DetailedSessionReport) -> String {
     let mut output = String::new();
-    let divider = "=".repeat(80);
     let tz = get_timezone_abbrev();
 
     // Header
-    output.push_str(&divider);
-    output.push('\n');
-    output.push_str("                        HALE SESSION SUMMARY REPORT\n");
-    output.push_str(&divider);
-    output.push_str("\n\n");
+    output.push_str("# HALE SESSION SUMMARY REPORT\n\n");
 
     // Session Score
-    output.push_str(&format!("SESSION SCORE: {:?}\n", report.score));
-    output.push_str(&format!("  {}\n\n", report.score.description()));
+    output.push_str(&format!("## Session Score: **{:?}**\n\n", report.score));
+    output.push_str(&format!("_{}_\n\n", report.score.description()));
 
     // Session Metadata
-    output.push_str("SESSION METADATA:\n");
+    output.push_str("## Session Metadata\n\n");
     output.push_str(&format!(
-        "  Start:    {} ({})\n",
+        "- **Start:** {} ({})\n",
         report.session_start.format("%Y-%m-%d %H:%M:%S"),
         tz
     ));
     output.push_str(&format!(
-        "  End:      {} ({})\n",
+        "- **End:** {} ({})\n",
         report.session_end.format("%Y-%m-%d %H:%M:%S"),
         tz
     ));
     output.push_str(&format!(
-        "  Duration: {}\n",
+        "- **Duration:** {}\n",
         format_duration(report.session_duration_secs as f64)
     ));
-    output.push_str(&format!("  Targets:  {}\n\n", report.targets_list));
+    output.push_str(&format!("- **Targets:** {}\n\n", report.targets_list));
 
     // Uptime Statistics
-    output.push_str("UPTIME STATISTICS:\n");
+    output.push_str("## Uptime Statistics\n\n");
     output.push_str(&format!(
-        "  OK:           {:6.2}%  ({})\n",
+        "- **OK:** {:.2}% ({})\n",
         report.uptime_stats.ok_pct,
         format_duration(report.uptime_stats.ok_secs)
     ));
     output.push_str(&format!(
-        "  Slow:         {:6.2}%  ({})\n",
+        "- **Slow:** {:.2}% ({})\n",
         report.uptime_stats.slow_pct,
         format_duration(report.uptime_stats.slow_secs)
     ));
     output.push_str(&format!(
-        "  Disconnected: {:6.2}%  ({})\n\n",
+        "- **Disconnected:** {:.2}% ({})\n\n",
         report.uptime_stats.disconnected_pct,
         format_duration(report.uptime_stats.disconnected_secs)
     ));
 
     // Incident Counts
-    output.push_str("INCIDENT SUMMARY:\n");
+    output.push_str("## Incident Summary\n\n");
     output.push_str(&format!(
-        "  Disconnections: {}\n",
+        "- **Disconnections:** {}\n",
         report.disconnection_count
     ));
-    output.push_str(&format!("  Slow Periods:   {}\n\n", report.slow_count));
+    output.push_str(&format!("- **Slow Periods:** {}\n\n", report.slow_count));
 
     // Detailed Issues Table
+    output.push_str("## Detailed Issues\n\n");
     if report.incidents.is_empty() {
-        output.push_str("DETAILED ISSUES:\n");
-        output.push_str("  No issues detected during this session.\n\n");
+        output.push_str("_No issues detected during this session._\n\n");
     } else {
-        output.push_str("DETAILED ISSUES:\n");
-        output.push_str(&format!(
-            "  {:20} {:13} {:12} {:12}\n",
-            "Timestamp", "Status", "Duration", "Avg Latency"
-        ));
-        output.push_str(&format!("  {}\n", "-".repeat(60)));
+        output.push_str("| Timestamp | Status | Duration | Avg Latency |\n");
+        output.push_str("|-----------|--------|----------|-------------|\n");
 
         for incident in &report.incidents {
-            let timestamp_str = format!("{}", incident.timestamp.format("%Y-%m-%d %H:%M:%S"));
+            let timestamp_str = incident.timestamp.format("%Y-%m-%d %H:%M:%S").to_string();
             let status_str = format!("{:?}", incident.status).to_uppercase();
             let duration_str = format_duration(incident.duration_secs);
             let latency_str = if let Some(lat) = incident.avg_latency_ms {
@@ -457,7 +448,7 @@ fn format_detailed_report(report: &DetailedSessionReport) -> String {
             };
 
             output.push_str(&format!(
-                "  {:20} {:13} {:12} {:12}\n",
+                "| {} | {} | {} | {} |\n",
                 timestamp_str, status_str, duration_str, latency_str
             ));
         }
@@ -465,27 +456,24 @@ fn format_detailed_report(report: &DetailedSessionReport) -> String {
     }
 
     // Score Legend
-    output.push_str("SCORE LEGEND:\n");
-    output.push_str("  Perfect:      100% uptime with no degradation\n");
-    output.push_str("  OK:           >99% uptime with minimal issues\n");
-    output.push_str("  Poor:         95-99% uptime or frequent degradation\n");
-    output.push_str("  Unacceptable: <95% uptime or extended outages\n");
-    output.push_str("  NoConnection: No successful connections\n\n");
+    output.push_str("## Score Legend\n\n");
+    output.push_str("- **Perfect:** 100% uptime with no degradation\n");
+    output.push_str("- **OK:** >99% uptime with minimal issues\n");
+    output.push_str("- **Poor:** 95-99% uptime or frequent degradation\n");
+    output.push_str("- **Unacceptable:** <95% uptime or extended outages\n");
+    output.push_str("- **NoConnection:** No successful connections\n\n");
 
     // Footer
-    output.push_str(&divider);
-    output.push('\n');
-    output.push_str("Created by Hale - your internet connection checked\n\n");
+    output.push_str("---\n\n");
+    output.push_str("_Created by **Hale** - your internet connection checker_\n\n");
     output.push_str(
-        "DISCLAIMER: This software is provided \"AS IS\" without warranty of any kind.\n",
+        "**DISCLAIMER:** This software is provided \"AS IS\" without warranty of any kind. ",
     );
     output.push_str(
         "Network quality metrics are estimates and may not reflect actual conditions.\n\n",
     );
-    output.push_str("License: MIT License - Copyright (c) 2026 Adam Matan\n");
-    output.push_str("Repository: https://github.com/adamatan/hale\n");
-    output.push_str(&divider);
-    output.push('\n');
+    output.push_str("**License:** MIT License - Copyright (c) 2026 Adam Matan  \n");
+    output.push_str("**Repository:** https://github.com/adamatan/hale\n");
 
     output
 }
@@ -503,7 +491,7 @@ pub fn write_detailed_report(state: &TuiState) -> Result<PathBuf, Box<dyn std::e
 
     // Generate filename with timestamp
     let timestamp = Local::now().format("%Y%m%d-%H%M%S");
-    let filename = format!("/tmp/hale-summary-{}.txt", timestamp);
+    let filename = format!("/tmp/hale-summary-{}.md", timestamp);
     let path = PathBuf::from(&filename);
 
     // Write to file
