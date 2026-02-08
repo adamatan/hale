@@ -390,12 +390,12 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
     let tz = get_timezone_abbrev();
 
     // Header
-    output.push_str("Hale Session Summary\n\n");
+    output.push_str("Hale Session Summary\n");
 
     // Session Score
     let emoji = get_score_emoji(&report.score);
     output.push_str(&format!("{} Session Score: {:?}\n", emoji, report.score));
-    output.push_str(&format!("  {}\n\n", report.score.description()));
+    output.push_str(&format!("  {}\n", report.score.description()));
 
     // Session Metadata
     output.push_str("Session Metadata\n");
@@ -413,7 +413,7 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
         "  Duration: {}\n",
         format_duration(report.session_duration_secs as f64)
     ));
-    output.push_str(&format!("  Targets:  {}\n\n", report.targets_list));
+    output.push_str(&format!("  Targets:  {}\n", report.targets_list));
 
     // Uptime Statistics
     output.push_str("Uptime Statistics\n");
@@ -428,7 +428,7 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
         format_duration(report.uptime_stats.slow_secs)
     ));
     output.push_str(&format!(
-        "  Disconnected: {:6.2}%  ({})\n\n",
+        "  Disconnected: {:6.2}%  ({})\n",
         report.uptime_stats.disconnected_pct,
         format_duration(report.uptime_stats.disconnected_secs)
     ));
@@ -439,7 +439,7 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
         "  Disconnections: {}\n",
         report.disconnection_count
     ));
-    output.push_str(&format!("  Slow Periods:   {}\n\n", report.slow_count));
+    output.push_str(&format!("  Slow Periods:   {}\n", report.slow_count));
 
     // Detailed Issues Table
     if !report.incidents.is_empty() {
@@ -464,7 +464,6 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
                 timestamp_str, status_str, duration_str, latency_str
             ));
         }
-        output.push('\n');
     }
 
     // Score Legend
@@ -473,12 +472,7 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
     output.push_str("  OK:           >99% uptime with minimal issues\n");
     output.push_str("  Poor:         95-99% uptime or frequent degradation\n");
     output.push_str("  Unacceptable: <95% uptime or extended outages\n");
-    output.push_str("  NoConnection: No successful connections\n\n");
-
-    // About
-    output.push_str("About\n");
-    output.push_str("  Created by Hale - your internet connection checker\n");
-    output.push_str("  Repository: https://github.com/adamatan/hale\n");
+    output.push_str("  NoConnection: No successful connections\n");
 
     output
 }
