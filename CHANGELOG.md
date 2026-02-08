@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.25](https://github.com/adamatan/hale/compare/v0.1.24...v0.1.25) - 2026-02-08
+
+### Features
+
+- simplify session info box to single quit instruction ([#24](https://github.com/adamatan/hale/pull/24))
+
 ## [0.1.24](https://github.com/adamatan/hale/compare/v0.1.23...v0.1.24) - 2026-02-06
 
 ### Features
