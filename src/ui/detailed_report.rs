@@ -390,9 +390,7 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
     let tz = get_timezone_abbrev();
 
     // Header
-    output.push_str("Hale Session Summary\n");
-    output.push_str("━".repeat(80).as_str());
-    output.push_str("\n\n");
+    output.push_str("Hale Session Summary\n\n");
 
     // Session Score
     let emoji = get_score_emoji(&report.score);
@@ -450,7 +448,6 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
             "  {:20} {:13} {:12} {:12}\n",
             "Timestamp", "Status", "Duration", "Avg Latency"
         ));
-        output.push_str(&format!("  {}\n", "─".repeat(60)));
 
         for incident in &report.incidents {
             let timestamp_str = format!("{}", incident.timestamp.format("%Y-%m-%d %H:%M:%S"));
@@ -471,8 +468,6 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
     }
 
     // Footer
-    output.push_str("━".repeat(80).as_str());
-    output.push('\n');
     output.push_str("Created by Hale - your internet connection checker\n");
     output.push_str("Repository: https://github.com/adamatan/hale\n");
 
