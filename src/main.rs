@@ -209,22 +209,22 @@ async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::erro
             if let Ok(report) = ui::generate_detailed_report(&tui_state) {
                 println!("{}", report);
             }
-        }
 
-        // Display log paths
-        println!("Logs");
-        println!("  Session log saved to: {}", log_path.display());
-        if let Some(path) = summary_path {
-            println!("  Session summary saved to: {}", path.display());
-        }
+            // Display log paths
+            println!("Logs");
+            println!("  Session log saved to: {}", log_path.display());
+            if let Some(path) = summary_path {
+                println!("  Session summary saved to: {}", path.display());
+            }
 
-        // About
-        println!("\nAbout");
-        println!("  Created by Hale - your internet connection checker");
-        println!("  Repository: https://github.com/adamatan/hale");
-        println!();
-        println!("  DISCLAIMER: This software is provided \"AS IS\" without warranty of any kind.");
-        println!("  Network quality metrics are estimates and may not reflect actual conditions.");
+            // About
+            println!("\nAbout");
+            println!("  Created by Hale - your internet connection checker");
+            println!("  Repository: https://github.com/adamatan/hale");
+            println!();
+            println!("  DISCLAIMER: This software is provided \"AS IS\" without warranty of any kind.");
+            println!("  Network quality metrics are estimates and may not reflect actual conditions.");
+        }
     }
 
     // Exit with appropriate code based on session results
