@@ -1,4 +1,5 @@
 use crate::config::{PROBE_INTERVAL_MS, TARGETS, TARGET_LABELS};
+use crate::monitor::net_info::NetworkInfo;
 use crate::monitor::{ConnectionStatus, ProbeRound};
 use crate::ui::tui::TuiState;
 use chrono::{DateTime, Local, TimeZone};
@@ -57,6 +58,9 @@ pub struct DetailedSessionReport {
     pub session_end: DateTime<Local>,
     pub session_duration_secs: i64,
     pub targets_list: String,
+    pub network_info: Option<NetworkInfo>,
+    pub ip_change_count: usize,
+    pub isp_location_change_count: usize,
     pub uptime_stats: UptimeStats,
     pub disconnection_count: usize,
     pub slow_count: usize,
@@ -348,6 +352,9 @@ fn calculate_report(state: &TuiState) -> DetailedSessionReport {
         session_end: Local.from_utc_datetime(&session_end.naive_utc()),
         session_duration_secs,
         targets_list,
+        network_info: state.network_info.clone(),
+        ip_change_count: state.ip_change_count,
+        isp_location_change_count: state.isp_location_change_count,
         uptime_stats,
         disconnection_count,
         slow_count,
@@ -381,6 +388,71 @@ fn get_timezone_abbrev() -> String {
     } else {
         tz_str
     }
+}
+
+/// Format network information section
+fn format_network_info(
+    network_info: &Option<NetworkInfo>,
+    ip_change_count: usize,
+    isp_location_change_count: usize,
+) -> Vec<String> {
+    let mut lines = Vec::new();
+
+    if let Some(info) = network_info {
+        // If there were changes, add those lines first
+        if ip_change_count > 0 {
+            lines.push(format!("  IP changed {} time{} during session",
+                ip_change_count,
+                if ip_change_count == 1 { "" } else { "s" }
+            ));
+        }
+        if isp_location_change_count > 0 {
+            lines.push(format!("  ISP/Location changed {} time{} during session",
+                isp_location_change_count,
+                if isp_location_change_count == 1 { "" } else { "s" }
+            ));
+        }
+
+        // Show current info (with "Current" prefix if there were changes)
+        let prefix = if ip_change_count > 0 || isp_location_change_count > 0 {
+            "Current "
+        } else {
+            ""
+        };
+
+        // IP (prefer IPv4, fallback to IPv6)
+        if let Some(ip) = info.public_ipv4.as_ref().or(info.public_ipv6.as_ref()) {
+            lines.push(format!("  {}IP:       {}", prefix, ip));
+        }
+
+        // ISP with ASN
+        if let Some(isp) = &info.isp {
+            let isp_line = if let Some(asn) = &info.asn {
+                format!("  {}ISP:      {} ({})", prefix, isp, asn)
+            } else {
+                format!("  {}ISP:      {}", prefix, isp)
+            };
+            lines.push(isp_line);
+        }
+
+        // Location (City, Country)
+        match (&info.city, &info.country) {
+            (Some(city), Some(country)) => {
+                lines.push(format!("  {}Location: {}, {}", prefix, city, country));
+            }
+            (None, Some(country)) => {
+                lines.push(format!("  {}Location: {}", prefix, country));
+            }
+            (Some(city), None) => {
+                lines.push(format!("  {}Location: {}", prefix, city));
+            }
+            (None, None) => {}
+        }
+    } else {
+        lines.push("  Network information unavailable".to_string());
+    }
+
+    lines
 }
 
 /// Get emoji indicator for session score
@@ -425,6 +497,19 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
         format_duration(report.session_duration_secs as f64)
     ));
     output.push_str(&format!("  Targets:  {}\n", report.targets_list));
+
+    // Network Information
+    output.push('\n');
+    output.push_str("Network Information\n");
+    let network_lines = format_network_info(
+        &report.network_info,
+        report.ip_change_count,
+        report.isp_location_change_count,
+    );
+    for line in network_lines {
+        output.push_str(&line);
+        output.push('\n');
+    }
 
     // Uptime Statistics
     output.push('\n');
@@ -521,6 +606,65 @@ fn format_detailed_report_markdown(report: &DetailedSessionReport) -> String {
         format_duration(report.session_duration_secs as f64)
     ));
     output.push_str(&format!("- **Targets:** {}\n\n", report.targets_list));
+
+    // Network Information
+    output.push_str("## Network Information\n\n");
+    if let Some(info) = &report.network_info {
+        // If there were changes, add those lines first
+        if report.ip_change_count > 0 {
+            output.push_str(&format!(
+                "- **IP changed {} time{} during session**\n",
+                report.ip_change_count,
+                if report.ip_change_count == 1 { "" } else { "s" }
+            ));
+        }
+        if report.isp_location_change_count > 0 {
+            output.push_str(&format!(
+                "- **ISP/Location changed {} time{} during session**\n",
+                report.isp_location_change_count,
+                if report.isp_location_change_count == 1 { "" } else { "s" }
+            ));
+        }
+
+        // Show current info (with "Current" prefix if there were changes)
+        let prefix = if report.ip_change_count > 0 || report.isp_location_change_count > 0 {
+            "Current "
+        } else {
+            ""
+        };
+
+        // IP (prefer IPv4, fallback to IPv6)
+        if let Some(ip) = info.public_ipv4.as_ref().or(info.public_ipv6.as_ref()) {
+            output.push_str(&format!("- **{}IP:** {}\n", prefix, ip));
+        }
+
+        // ISP with ASN
+        if let Some(isp) = &info.isp {
+            let isp_line = if let Some(asn) = &info.asn {
+                format!("- **{}ISP:** {} ({})\n", prefix, isp, asn)
+            } else {
+                format!("- **{}ISP:** {}\n", prefix, isp)
+            };
+            output.push_str(&isp_line);
+        }
+
+        // Location (City, Country)
+        match (&info.city, &info.country) {
+            (Some(city), Some(country)) => {
+                output.push_str(&format!("- **{}Location:** {}, {}\n", prefix, city, country));
+            }
+            (None, Some(country)) => {
+                output.push_str(&format!("- **{}Location:** {}\n", prefix, country));
+            }
+            (Some(city), None) => {
+                output.push_str(&format!("- **{}Location:** {}\n", prefix, city));
+            }
+            (None, None) => {}
+        }
+    } else {
+        output.push_str("_Network information unavailable_\n");
+    }
+    output.push('\n');
 
     // Uptime Statistics
     output.push_str("## Uptime Statistics\n\n");

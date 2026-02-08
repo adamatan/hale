@@ -140,7 +140,7 @@ async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::erro
 
                 // Receive network info updates
                 Some(info) = net_info_rx.recv() => {
-                    tui_state.network_info = Some(info);
+                    tui_state.update_network_info(info);
                 }
 
                 // Handle Input Events

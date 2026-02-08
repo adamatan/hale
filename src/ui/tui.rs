@@ -81,6 +81,9 @@ pub struct TuiState {
     pub disconnections: Vec<DisconnectionEvent>,
     pub last_status: Option<ConnectionStatus>,
     pub network_info: Option<NetworkInfo>,
+    pub prev_network_info: Option<NetworkInfo>,
+    pub ip_change_count: usize,
+    pub isp_location_change_count: usize,
 }
 
 impl TuiState {
@@ -93,7 +96,37 @@ impl TuiState {
             disconnections: Vec::new(),
             last_status: None,
             network_info: None,
+            prev_network_info: None,
+            ip_change_count: 0,
+            isp_location_change_count: 0,
         }
+    }
+
+    /// Update network info and track changes
+    pub fn update_network_info(&mut self, new_info: NetworkInfo) {
+        if let Some(prev) = &self.network_info {
+            // Check if IP changed (IPv4 or IPv6)
+            let ip_changed = prev.public_ipv4 != new_info.public_ipv4
+                || prev.public_ipv6 != new_info.public_ipv6;
+
+            // Check if ISP or location changed
+            let isp_location_changed = prev.isp != new_info.isp
+                || prev.asn != new_info.asn
+                || prev.city != new_info.city
+                || prev.country != new_info.country;
+
+            if ip_changed {
+                self.ip_change_count += 1;
+            }
+
+            if isp_location_changed {
+                self.isp_location_change_count += 1;
+            }
+
+            self.prev_network_info = self.network_info.clone();
+        }
+
+        self.network_info = Some(new_info);
     }
 
     pub fn time_since_last_incident(&self) -> String {
