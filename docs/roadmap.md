@@ -14,7 +14,7 @@
 
 - [x] **Exit Codes** - Implement meaningful exit codes: 0 for OK, 1 for no internet connection at all, 2 for disconnections detected
 - [ ] **Installation Packages** - Homebrew, GitHub binary releases, improved cargo install documentation, apt/deb packages
-  - [ ] Build deb package as part of GitHub release and test installation in GitHub Actions
+  - [x] Build deb package as part of GitHub release and test installation in GitHub Actions
 - [ ] **Terminal Size Awareness** - Graceful degradation as terminal shrinks: status (always visible) → network stats → history → specific targets → aggregate. Minimum size = whatever can display status
 - [ ] **Custom Probe Targets** - CLI flags `--add-targets/-t` to extend default providers, `--replace-targets/-T` to use only custom targets
 - [ ] **Improved Logs and Reports** - Configurable log path, summary reports on exit, CSV/JSON export formats
