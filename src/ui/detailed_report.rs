@@ -467,9 +467,18 @@ fn format_detailed_report_console(report: &DetailedSessionReport) -> String {
         output.push('\n');
     }
 
-    // Footer
-    output.push_str("Created by Hale - your internet connection checker\n");
-    output.push_str("Repository: https://github.com/adamatan/hale\n");
+    // Score Legend
+    output.push_str("Score Legend\n");
+    output.push_str("  Perfect:      100% uptime with no degradation\n");
+    output.push_str("  OK:           >99% uptime with minimal issues\n");
+    output.push_str("  Poor:         95-99% uptime or frequent degradation\n");
+    output.push_str("  Unacceptable: <95% uptime or extended outages\n");
+    output.push_str("  NoConnection: No successful connections\n\n");
+
+    // About
+    output.push_str("About\n");
+    output.push_str("  Created by Hale - your internet connection checker\n");
+    output.push_str("  Repository: https://github.com/adamatan/hale\n");
 
     output
 }
