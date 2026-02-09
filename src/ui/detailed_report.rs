@@ -769,7 +769,7 @@ pub fn write_detailed_report(
     let formatted = format_detailed_report_markdown(&report);
 
     // Generate filename with session_id
-    let filename = format!("/tmp/hale-summary-{}.md", session_id);
+    let filename = format!("/tmp/hale-{}-summary.md", session_id);
     let path = PathBuf::from(&filename);
 
     // Write to file
@@ -794,7 +794,7 @@ mod tests {
         assert!(path
             .to_str()
             .unwrap()
-            .contains("hale-summary-TEST-SESSION-1234.md"));
+            .contains("hale-TEST-SESSION-1234-summary.md"));
         let _ = std::fs::remove_file(path);
     }
 }
