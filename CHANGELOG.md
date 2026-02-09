@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.26](https://github.com/adamatan/hale/compare/v0.1.25...v0.1.26) - 2026-02-09
+
+### Features
+
+- add detailed session summary report with scoring ([#26](https://github.com/adamatan/hale/pull/26))
+
 ## [0.1.25](https://github.com/adamatan/hale/compare/v0.1.24...v0.1.25) - 2026-02-08
 
 ### Features
