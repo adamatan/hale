@@ -10,6 +10,7 @@ use crate::monitor::net_info::{self, NetworkInfo};
 use crate::monitor::prober::run_probe_loop;
 use crate::ui::parse_args;
 use crate::utils::logger::SessionLogger;
+use chrono::Utc;
 use crossterm::event::{Event, EventStream, KeyCode, KeyModifiers};
 use futures::StreamExt;
 use std::collections::VecDeque;
@@ -39,8 +40,14 @@ async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::erro
     // Initialize terminal
     let mut terminal = ui::tui::init_terminal()?;
 
+    // Generate session ID
+    let now = Utc::now();
+    let timestamp = now.format("%Y-%m-%d-%H-%M-%S");
+    let suffix = (now.timestamp_subsec_nanos() % 0xFFFF) as u16;
+    let session_id = format!("{}-{:04x}", timestamp, suffix);
+
     // Create logger
-    let mut logger = SessionLogger::new()?;
+    let mut logger = SessionLogger::new(&session_id)?;
     let log_path = logger.log_path().clone();
 
     // Create channel for probe results
@@ -193,7 +200,13 @@ async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::erro
     ui::tui::restore_terminal(&mut terminal)?;
 
     // Generate and write detailed report
-    let summary_path = ui::write_detailed_report(&tui_state).ok();
+    let summary_path = match ui::write_detailed_report(&tui_state, &session_id) {
+        Ok(path) => Some(path),
+        Err(e) => {
+            eprintln!("Error writing summary report: {}", e);
+            None
+        }
+    };
 
     // Display appropriate summary based on --short flag (unless --silent flag is set)
     if !silent {

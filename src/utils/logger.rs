@@ -14,12 +14,8 @@ pub struct SessionLogger {
 
 impl SessionLogger {
     /// Create a new session logger
-    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let now = Utc::now();
-        let timestamp = now.format("%Y-%m-%d-%H-%M-%S");
-        // Use nanoseconds as a source of randomness for the suffix
-        let suffix = (now.timestamp_subsec_nanos() % 0xFFFF) as u16;
-        let log_path = PathBuf::from(format!("/tmp/hale-{}-{:04x}.log", timestamp, suffix));
+    pub fn new(session_id: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let log_path = PathBuf::from(format!("/tmp/hale-{}.log", session_id));
 
         let log_file = OpenOptions::new()
             .create(true)
