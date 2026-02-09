@@ -140,7 +140,7 @@ async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::erro
 
                 // Receive network info updates
                 Some(info) = net_info_rx.recv() => {
-                    tui_state.network_info = Some(info);
+                    tui_state.update_network_info(info);
                 }
 
                 // Handle Input Events
@@ -192,14 +192,41 @@ async fn run_tui_mode(silent: bool, short: bool) -> Result<(), Box<dyn std::erro
     // Restore terminal
     ui::tui::restore_terminal(&mut terminal)?;
 
-    // Display exit summary (unless --silent flag is set)
-    if !silent {
-        let summary = ui::format_summary(&tui_state, short);
-        println!("{}", summary);
-    }
+    // Generate and write detailed report
+    let summary_path = ui::write_detailed_report(&tui_state).ok();
 
-    // Display log path
-    println!("\nSession log saved to: {}", log_path.display());
+    // Display appropriate summary based on --short flag (unless --silent flag is set)
+    if !silent {
+        if short {
+            let summary =
+                ui::format_summary_with_report_path(&tui_state, true, summary_path.as_deref());
+            println!("{}", summary);
+        } else {
+            // Display detailed report to console
+            if let Ok(report) = ui::generate_detailed_report(&tui_state) {
+                println!("{}", report);
+            }
+
+            // Display log paths
+            println!("Logs");
+            println!("  Session log saved to: {}", log_path.display());
+            if let Some(path) = summary_path {
+                println!("  Session summary saved to: {}", path.display());
+            }
+
+            // About
+            println!("\nAbout");
+            println!("  Created by Hale - your internet connection checker");
+            println!("  Repository: https://github.com/adamatan/hale");
+            println!();
+            println!(
+                "  DISCLAIMER: This software is provided \"AS IS\" without warranty of any kind."
+            );
+            println!(
+                "  Network quality metrics are estimates and may not reflect actual conditions."
+            );
+        }
+    }
 
     // Exit with appropriate code based on session results
     let final_status = tui_state
