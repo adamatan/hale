@@ -188,7 +188,11 @@ async fn get_local_interface_info() -> (
                 None
             };
 
-            // Get SSID and Signal if wireless
+            // Get SSID and Signal if wireless (or always on macOS to handle VPN/utun)
+            #[cfg(target_os = "macos")]
+            let (ssid, signal, noise) = get_wifi_info(&interface.name);
+
+            #[cfg(not(target_os = "macos"))]
             let (ssid, signal, noise) = if format!("{:?}", interface.if_type).contains("Wireless") {
                 get_wifi_info(&interface.name)
             } else {
