@@ -74,9 +74,10 @@ fn get_wifi_info(_interface_name: &str) -> (Option<String>, Option<i32>, Option<
         })
     };
 
-    // 2. Get Signal/Noise using system_profiler (more expensive, but has details)
-    // We only do this if we found an SSID, implying we are connected to WiFi
-    let (signal, noise) = if ssid.is_some() {
+    // 2. Get Signal/Noise using system_profiler
+    // We always check this because networksetup can sometimes fail to report the SSID
+    // even when connected (e.g. "You are not associated with an AirPort network").
+    let (signal, noise) = {
         let output = Command::new("system_profiler")
             .arg("SPAirPortDataType")
             .output()
@@ -85,7 +86,6 @@ fn get_wifi_info(_interface_name: &str) -> (Option<String>, Option<i32>, Option<
         if let Some(o) = output {
             let stdout = String::from_utf8_lossy(&o.stdout);
             // Look for "Signal / Noise: -XX dBm / -XX dBm"
-            // This output can be nested under "Current Network Information"
             if let Some(line) = stdout.lines().find(|l| l.contains("Signal / Noise:")) {
                 let parts: Vec<&str> = line.split(':').collect();
                 if parts.len() > 1 {
@@ -107,8 +107,6 @@ fn get_wifi_info(_interface_name: &str) -> (Option<String>, Option<i32>, Option<
         } else {
             (None, None)
         }
-    } else {
-        (None, None)
     };
 
     (ssid, signal, noise)
