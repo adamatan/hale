@@ -454,6 +454,11 @@ fn format_network_info(
             }
             (None, None) => {}
         }
+
+        // Signal Strength
+        if let Some(signal) = info.signal_strength {
+            lines.push(format!("  {}Signal:   {} dBm", prefix, signal));
+        }
     } else {
         lines.push("  Network information unavailable".to_string());
     }
@@ -673,6 +678,11 @@ fn format_detailed_report_markdown(report: &DetailedSessionReport) -> String {
                 output.push_str(&format!("- **{}Location:** {}\n", prefix, city));
             }
             (None, None) => {}
+        }
+
+        // Signal Strength
+        if let Some(signal) = info.signal_strength {
+            output.push_str(&format!("- **{}Signal:** {} dBm\n", prefix, signal));
         }
     } else {
         output.push_str("_Network information unavailable_\n");

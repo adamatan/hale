@@ -583,24 +583,26 @@ fn render_network_info(f: &mut Frame, area: Rect, state: &TuiState) {
     f.render_widget(Paragraph::new(ip_lines), columns[0]);
 
     // Right Column: Interface Info and ISP
-    let (if_name, if_type, local_ip, wifi_ssid, isp_line) = if let Some(info) = &state.network_info
-    {
-        let isp_display = match (&info.isp, &info.asn) {
-            (Some(isp), Some(asn)) => format!("{} ({})", isp, asn),
-            (Some(isp), None) => isp.clone(),
-            (None, Some(asn)) => asn.clone(),
-            (None, None) => "N/A".to_string(),
+    let (if_name, if_type, local_ip, wifi_ssid, signal_strength, _signal_noise, isp_line) =
+        if let Some(info) = &state.network_info {
+            let isp_display = match (&info.isp, &info.asn) {
+                (Some(isp), Some(asn)) => format!("{} ({})", isp, asn),
+                (Some(isp), None) => isp.clone(),
+                (None, Some(asn)) => asn.clone(),
+                (None, None) => "N/A".to_string(),
+            };
+            (
+                info.interface_name.as_deref().unwrap_or("Unknown"),
+                info.interface_type.as_deref().unwrap_or(""),
+                info.local_ip.as_deref().unwrap_or("N/A"),
+                info.wifi_ssid.as_deref(),
+                info.signal_strength,
+                info.signal_noise,
+                isp_display,
+            )
+        } else {
+            ("...", "", "...", None, None, None, "...".to_string())
         };
-        (
-            info.interface_name.as_deref().unwrap_or("Unknown"),
-            info.interface_type.as_deref().unwrap_or(""),
-            info.local_ip.as_deref().unwrap_or("N/A"),
-            info.wifi_ssid.as_deref(),
-            isp_display,
-        )
-    } else {
-        ("...", "", "...", None, "...".to_string())
-    };
 
     let type_display = if let Some(ssid) = wifi_ssid {
         format!(" (Wi-Fi: {})", ssid)
@@ -610,7 +612,7 @@ fn render_network_info(f: &mut Frame, area: Rect, state: &TuiState) {
         String::new()
     };
 
-    let interface_lines = vec![
+    let mut interface_lines = vec![
         Line::from(vec![
             Span::styled("Int:   ", Style::default().fg(Color::DarkGray)),
             Span::styled(
@@ -622,11 +624,33 @@ fn render_network_info(f: &mut Frame, area: Rect, state: &TuiState) {
             Span::styled("Local: ", Style::default().fg(Color::DarkGray)),
             Span::styled(local_ip, Style::default().fg(Color::White)),
         ]),
-        Line::from(vec![
-            Span::styled("ISP:   ", Style::default().fg(Color::DarkGray)),
-            Span::styled(isp_line, Style::default().fg(Color::White)),
-        ]),
     ];
+
+    // Insert Signal line if available
+    if let Some(signal) = signal_strength {
+        // Color code the signal
+        // Excellent/Good: > -60 dBm
+        // Fair: -60 to -70 dBm
+        // Weak: < -70 dBm
+        let color = if signal > -60 {
+            Color::Green
+        } else if signal > -70 {
+            Color::Yellow
+        } else {
+            Color::Red
+        };
+
+        interface_lines.push(Line::from(vec![
+            Span::styled("Signal:", Style::default().fg(Color::DarkGray)),
+            Span::styled(format!(" {} dBm", signal), Style::default().fg(color)),
+        ]));
+    }
+
+    interface_lines.push(Line::from(vec![
+        Span::styled("ISP:   ", Style::default().fg(Color::DarkGray)),
+        Span::styled(isp_line, Style::default().fg(Color::White)),
+    ]));
+
     f.render_widget(Paragraph::new(interface_lines), columns[1]);
 }
 

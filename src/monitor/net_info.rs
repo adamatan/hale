@@ -12,30 +12,13 @@ pub struct NetworkInfo {
     pub interface_type: Option<String>,
     pub local_ip: Option<String>,
     pub wifi_ssid: Option<String>,
+    pub signal_strength: Option<i32>, // RSSI in dBm
+    pub signal_noise: Option<i32>,    // Noise in dBm
     pub country: Option<String>,
     pub city: Option<String>,
     pub isp: Option<String>,
     pub org: Option<String>,
     pub asn: Option<String>,
-}
-
-impl NetworkInfo {
-    #[allow(dead_code)]
-    pub fn new() -> Self {
-        Self {
-            public_ipv4: None,
-            public_ipv6: None,
-            interface_name: None,
-            interface_type: None,
-            local_ip: None,
-            wifi_ssid: None,
-            country: None,
-            city: None,
-            isp: None,
-            org: None,
-            asn: None,
-        }
-    }
 }
 
 async fn fetch_public_ip(service_host: &str) -> Option<String> {
@@ -72,33 +55,116 @@ async fn fetch_public_ip(service_host: &str) -> Option<String> {
         .unwrap_or(None)
 }
 
-fn get_wifi_ssid(_interface_name: &str) -> Option<String> {
-    // macOS implementation using networksetup
-    #[cfg(target_os = "macos")]
-    {
+#[cfg(target_os = "macos")]
+fn get_wifi_info(_interface_name: &str) -> (Option<String>, Option<i32>, Option<i32>) {
+    // 1. Get SSID using networksetup (faster/simpler for just name)
+    let ssid = {
         let output = Command::new("networksetup")
             .args(["-getairportnetwork", _interface_name])
             .output()
-            .ok()?;
+            .ok();
 
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        // Output format: "Current Wi-Fi Network: MyWifiName\n"
-        if stdout.contains("Current Wi-Fi Network:") {
-            return stdout.split(": ").nth(1).map(|s| s.trim().to_string());
+        output.and_then(|o| {
+            let stdout = String::from_utf8_lossy(&o.stdout);
+            if stdout.contains("Current Wi-Fi Network:") {
+                stdout.split(": ").nth(1).map(|s| s.trim().to_string())
+            } else {
+                None
+            }
+        })
+    };
+
+    // 2. Get Signal/Noise using system_profiler (more expensive, but has details)
+    // We only do this if we found an SSID, implying we are connected to WiFi
+    let (signal, noise) = if ssid.is_some() {
+        let output = Command::new("system_profiler")
+            .arg("SPAirPortDataType")
+            .output()
+            .ok();
+
+        if let Some(o) = output {
+            let stdout = String::from_utf8_lossy(&o.stdout);
+            // Look for "Signal / Noise: -XX dBm / -XX dBm"
+            // This output can be nested under "Current Network Information"
+            if let Some(line) = stdout.lines().find(|l| l.contains("Signal / Noise:")) {
+                let parts: Vec<&str> = line.split(':').collect();
+                if parts.len() > 1 {
+                    let values: Vec<&str> = parts[1].split('/').collect();
+                    if values.len() == 2 {
+                        let parse_dbm = |s: &str| -> Option<i32> {
+                            s.split_whitespace().next()?.parse::<i32>().ok()
+                        };
+                        (parse_dbm(values[0]), parse_dbm(values[1]))
+                    } else {
+                        (None, None)
+                    }
+                } else {
+                    (None, None)
+                }
+            } else {
+                (None, None)
+            }
+        } else {
+            (None, None)
         }
-    }
+    } else {
+        (None, None)
+    };
 
-    // Linux implementation using iwgetid
-    #[cfg(target_os = "linux")]
-    {
-        let output = Command::new("iwgetid").arg("-r").output().ok()?;
-        let ssid = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if !ssid.is_empty() {
-            return Some(ssid);
+    (ssid, signal, noise)
+}
+
+#[cfg(target_os = "linux")]
+fn get_wifi_info(_interface_name: &str) -> (Option<String>, Option<i32>, Option<i32>) {
+    // 1. Get SSID
+    let ssid = {
+        let output = Command::new("iwgetid").arg("-r").output().ok();
+        output.and_then(|o| {
+            let s = String::from_utf8_lossy(&o.stdout).trim().to_string();
+            if !s.is_empty() {
+                Some(s)
+            } else {
+                None
+            }
+        })
+    };
+
+    // 2. Get Signal from /proc/net/wireless
+    // Format: inter-| sta-|   quality        |   discarded packets               | missed | WE
+    //  face | tus | link level noise |  nwid  crypt   frag  retry   misc | beacon | 22
+    //   wlan0: 0000   50.  -60.  -256        0      0      0      0      0        0
+    let (signal, noise) = if ssid.is_some() {
+        if let Ok(content) = std::fs::read_to_string("/proc/net/wireless") {
+            // Find line with interface name
+            if let Some(line) = content.lines().find(|l| l.contains(_interface_name)) {
+                let fields: Vec<&str> = line.split_whitespace().collect();
+                // fields[0] is "wlan0:", fields[1] is status
+                // fields[2] is link quality, fields[3] is level (signal), fields[4] is noise
+                // Note: format can vary slightly by driver, but level is usually 3rd or 4th col
+                // In the example above: col 0=face, 1=status, 2=link, 3=level, 4=noise
+                let parse_val = |s: &str| s.trim_matches('.').parse::<i32>().ok();
+
+                // Try standard positions
+                let level = fields.get(3).and_then(|s| parse_val(s));
+                let noise_val = fields.get(4).and_then(|s| parse_val(s));
+
+                (level, noise_val)
+            } else {
+                (None, None)
+            }
+        } else {
+            (None, None)
         }
-    }
+    } else {
+        (None, None)
+    };
 
-    None
+    (ssid, signal, noise)
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+fn get_wifi_info(_interface_name: &str) -> (Option<String>, Option<i32>, Option<i32>) {
+    (None, None, None)
 }
 
 async fn get_local_interface_info() -> (
@@ -106,6 +172,8 @@ async fn get_local_interface_info() -> (
     Option<String>,
     Option<String>,
     Option<String>,
+    Option<i32>,
+    Option<i32>,
 ) {
     // Spawn blocking task for default-net
     let result = tokio::task::spawn_blocking(|| {
@@ -122,21 +190,21 @@ async fn get_local_interface_info() -> (
                 None
             };
 
-            // Get SSID if wireless
-            let ssid = if format!("{:?}", interface.if_type).contains("Wireless") {
-                get_wifi_ssid(&interface.name)
+            // Get SSID and Signal if wireless
+            let (ssid, signal, noise) = if format!("{:?}", interface.if_type).contains("Wireless") {
+                get_wifi_info(&interface.name)
             } else {
-                None
+                (None, None, None)
             };
 
-            (name, type_str, local_ip, ssid)
+            (name, type_str, local_ip, ssid, signal, noise)
         } else {
-            (None, None, None, None)
+            (None, None, None, None, None, None)
         }
     })
     .await;
 
-    result.unwrap_or((None, None, None, None))
+    result.unwrap_or((None, None, None, None, None, None))
 }
 
 async fn fetch_geo_info() -> (
@@ -187,7 +255,12 @@ async fn fetch_geo_info() -> (
 }
 
 pub async fn refresh_network_info() -> NetworkInfo {
-    let (ipv4, ipv6, (if_name, if_type, local_ip, wifi_ssid), geo_info) = tokio::join!(
+    let (
+        ipv4,
+        ipv6,
+        (if_name, if_type, local_ip, wifi_ssid, signal_strength, signal_noise),
+        geo_info,
+    ) = tokio::join!(
         fetch_public_ip("api.ipify.org"),
         fetch_public_ip("api6.ipify.org"),
         get_local_interface_info(),
@@ -203,6 +276,8 @@ pub async fn refresh_network_info() -> NetworkInfo {
         interface_type: if_type,
         local_ip,
         wifi_ssid,
+        signal_strength,
+        signal_noise,
         country,
         city,
         isp,
