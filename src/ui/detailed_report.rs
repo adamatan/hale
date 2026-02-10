@@ -761,17 +761,40 @@ pub fn generate_detailed_report(state: &TuiState) -> Result<String, Box<dyn std:
 }
 
 /// Write detailed report to file in Markdown format and return the path
-pub fn write_detailed_report(state: &TuiState) -> Result<PathBuf, Box<dyn std::error::Error>> {
+pub fn write_detailed_report(
+    state: &TuiState,
+    session_id: &str,
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let report = calculate_report(state);
     let formatted = format_detailed_report_markdown(&report);
 
-    // Generate filename with timestamp
-    let timestamp = Local::now().format("%Y%m%d-%H%M%S");
-    let filename = format!("/tmp/hale-summary-{}.md", timestamp);
+    // Generate filename with session_id
+    let filename = format!("/tmp/hale-{}-summary.md", session_id);
     let path = PathBuf::from(&filename);
 
     // Write to file
     fs::write(&path, formatted)?;
 
     Ok(path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::tui::TuiState;
+
+    #[test]
+    fn test_write_detailed_report() {
+        let state = TuiState::new();
+        let session_id = "TEST-SESSION-1234";
+        let result = write_detailed_report(&state, session_id);
+        assert!(result.is_ok());
+        let path = result.unwrap();
+        assert!(path.exists());
+        assert!(path
+            .to_str()
+            .unwrap()
+            .contains("hale-TEST-SESSION-1234-summary.md"));
+        let _ = std::fs::remove_file(path);
+    }
 }

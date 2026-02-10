@@ -20,6 +20,7 @@ This document outlines completed features and future development plans for Hale,
   - Automatic report generation to `/tmp/hale-summary-{timestamp}.md` (Markdown format)
   - Console display (detailed by default, short with `--short` flag)
 - ✅ Session logging to `/tmp/hale-{timestamp}.log`
+- ✅ Improve log and summary filename readability and uniqueness (`hale-YYYY-MM-DD-HH-MM-SS-RAND.log`)
 - ✅ Short summary output format
 - ✅ Meaningful exit codes based on session quality
 

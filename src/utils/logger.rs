@@ -14,9 +14,8 @@ pub struct SessionLogger {
 
 impl SessionLogger {
     /// Create a new session logger
-    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let timestamp = Utc::now().format("%Y%m%d-%H%M%S");
-        let log_path = PathBuf::from(format!("/tmp/hale-{}.log", timestamp));
+    pub fn new(session_id: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let log_path = PathBuf::from(format!("/tmp/hale-{}.log", session_id));
 
         let log_file = OpenOptions::new()
             .create(true)
