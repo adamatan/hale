@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.27](https://github.com/adamatan/hale/compare/v0.1.26...v0.1.27) - 2026-02-10
+
+### Features
+
+- improve session log filename readability and uniqueness ([#27](https://github.com/adamatan/hale/pull/27))
+
 ## [0.1.26](https://github.com/adamatan/hale/compare/v0.1.25...v0.1.26) - 2026-02-09
 
 ### Features
