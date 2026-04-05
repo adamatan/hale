@@ -6,6 +6,32 @@ license = "MIT"
 description = "Instant network connection quality monitor"
 repository = "https://github.com/adamatan/hale"
 
+[package.metadata.deb]
+maintainer = "Adam Matan <adam@matan.name>"
+copyright = "2026, Adam Matan <adam@matan.name>"
+license-file = ["LICENSE", "0"]
+extended-description = """\
+hale is a lightweight, high-precision network connection quality monitor \
+that provides at-a-glance health assessment by probing six major global \
+networks (Google, AWS, Azure, Cloudflare, Quad9, OpenDNS) concurrently.\
+
+Features:
+* Multi-provider probing with majority voting (4/6 threshold)
+* High-frequency monitoring (500ms interval)
+* Interactive TUI and CLI modes
+* Automatic session logging and downtime tracking
+* Resource efficient (<5MB memory, <1% CPU)
+* Zero configuration required
+"""
+section = "utils"
+priority = "optional"
+depends = "$auto"
+assets = [
+    ["target/release/hale", "usr/bin/", "755"],
+    ["README.md", "usr/share/doc/hale/", "644"],
+    ["LICENSE", "usr/share/doc/hale/", "644"],
+]
+
 [dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "net", "sync", "signal", "io-util"] }
 ratatui = "0.26"
