@@ -12,9 +12,22 @@
 
 ### Installation
 
+**Homebrew (macOS & Linux):**
+```bash
+brew install adamatan/tap/hale
+```
+
+**Shell installer (macOS & Linux):**
+```bash
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/adamatan/hale/releases/latest/download/hale-installer.sh | sh
+```
+
+**From crates.io (any platform with Rust):**
 ```bash
 cargo install hale
 ```
+
+Prebuilt binaries for macOS (Intel + Apple Silicon) and Linux (x86_64 + arm64) are attached to each [GitHub Release](https://github.com/adamatan/hale/releases).
 
 ### Basic Usage
 
@@ -122,14 +135,12 @@ cargo test
 
 ### Release Process
 
-This project uses an automated release workflow powered by [release-plz](https://github.com/MarcoIeni/release-plz).
+This project uses two automated workflows:
 
-*   **Trigger**: Pushing to the `main` branch
-*   **Versioning**: Determined automatically based on [Conventional Commits](https://www.conventionalcommits.org/)
-    *   `fix:` -> Patch bump
-    *   `feat:` -> Minor bump
-    *   `BREAKING CHANGE:` -> Major bump
-*   **Publishing**: Automatically publishes to [crates.io](https://crates.io/crates/hale) and creates a GitHub release/tag
+1.  **[release-plz](https://github.com/MarcoIeni/release-plz)** bumps the version, publishes to [crates.io](https://crates.io/crates/hale), and creates a GitHub release tag.
+    *   **Trigger**: Pushing to `main`
+    *   **Versioning**: Based on [Conventional Commits](https://www.conventionalcommits.org/): `fix:` = patch, `feat:` = minor, `BREAKING CHANGE:` = major.
+2.  **[cargo-dist](https://opensource.axo.dev/cargo-dist/)** builds prebuilt binaries for macOS and Linux on each tag, attaches them to the GitHub release, and opens a PR against [adamatan/homebrew-tap](https://github.com/adamatan/homebrew-tap) to update the Homebrew formula.
 
 ## License
 
