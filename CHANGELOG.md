@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.29](https://github.com/adamatan/hale/compare/v0.1.28...v0.1.29) - 2026-04-17
+
+### Features
+
+- use filled dots for slow and disconnected status glyphs
+
 ## [0.1.27](https://github.com/adamatan/hale/compare/v0.1.26...v0.1.27) - 2026-02-10
 
 ### Features
