@@ -809,8 +809,8 @@ fn render_site_row(f: &mut Frame, area: Rect, state: &TuiState, idx: usize, use_
         } else {
             match status {
                 ConnectionStatus::Ok => ('·', Color::Green),
-                ConnectionStatus::Slow => ('!', Color::Yellow),
-                ConnectionStatus::Disconnected => ('█', Color::Red),
+                ConnectionStatus::Slow => ('•', Color::Yellow),
+                ConnectionStatus::Disconnected => ('●', Color::Red),
             }
         };
         spans.push(Span::styled(ch.to_string(), Style::default().fg(color)));
@@ -964,8 +964,8 @@ fn render_global_row(f: &mut Frame, area: Rect, state: &TuiState) {
         } else {
             match status {
                 ConnectionStatus::Ok => ('·', Color::Green),
-                ConnectionStatus::Slow => ('!', Color::Yellow),
-                ConnectionStatus::Disconnected => ('█', Color::Red),
+                ConnectionStatus::Slow => ('•', Color::Yellow),
+                ConnectionStatus::Disconnected => ('●', Color::Red),
             }
         };
         spans.push(Span::styled(ch.to_string(), Style::default().fg(color)));
@@ -1097,9 +1097,9 @@ fn render_summary_row(f: &mut Frame, area: Rect, state: &TuiState, label: &str, 
         let (ch, color) = if !has_data {
             (' ', Color::Black)
         } else if has_disconnection {
-            ('█', Color::Red)
+            ('●', Color::Red)
         } else if has_slow {
-            ('!', Color::Yellow)
+            ('•', Color::Yellow)
         } else {
             ('·', Color::Green)
         };
