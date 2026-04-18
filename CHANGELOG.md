@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.31](https://github.com/adamatan/hale/compare/v0.1.30...v0.1.31) - 2026-04-18
+
+### Bug Fixes
+
+- let cargo-dist own GitHub Release creation
+
 ## [0.1.29](https://github.com/adamatan/hale/compare/v0.1.28...v0.1.29) - 2026-04-17
 
 ### Features
