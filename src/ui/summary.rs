@@ -85,6 +85,11 @@ fn format_network_line(network_info: Option<&NetworkInfo>) -> String {
             (None, None) => {}
         }
 
+        // Signal Strength
+        if let Some(signal) = info.signal_strength {
+            parts.push(format!("Signal: {} dBm", signal));
+        }
+
         if parts.is_empty() {
             "N/A".to_string()
         } else {
